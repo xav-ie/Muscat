@@ -36,9 +36,9 @@ const ELLIPSE_STRIDE = 8;
 const MESH_STRIDE = 5;
 
 // Triangle-strip segments per blade.  16 segments → 34 vertices, 32
-// triangles.  Higher = smoother curves at small vertex cost.  At 8 px/mm
-// a 5 mm blade is ~40 px tall, so 16 segments keeps each step ≲ 2.5 px —
-// below the 4× MSAA edge precision.
+// triangles.  Higher = smoother curves at small vertex cost.  At 12 px/mm
+// each step is well below the 4× MSAA edge precision so curves stay
+// smooth.
 const BLADE_SEGMENTS = 16;
 const BLADE_VERTS = (BLADE_SEGMENTS + 1) * 2;
 
@@ -482,10 +482,12 @@ export async function grassScene(x: number, y: number, w: number, h: number): Pr
       const leanAmount = (t * (0.9 + rng() * 0.7) + (rng() - 0.5) * 0.4) * 0.5;
       const tipX = bx + leanAmount * scale;
       const tipY = by - height;
-      const halfBase = 0.28 * scale;
-      const ctrl1X = bx - halfBase + (tipX - (bx - halfBase)) * 0.4;
+      // Wider base + control points pulled toward the linear midpoint so
+      // edges read more like straight tapered triangles than soft curves.
+      const halfBase = 0.42 * scale;
+      const ctrl1X = bx - halfBase + (tipX - (bx - halfBase)) * 0.48;
       const ctrl1Y = by + (tipY - by) * 0.5;
-      const ctrl2X = bx + halfBase + (tipX - (bx + halfBase)) * 0.4;
+      const ctrl2X = bx + halfBase + (tipX - (bx + halfBase)) * 0.48;
       const ctrl2Y = by + (tipY - by) * 0.5;
       const mixT = Math.pow(rng(), 1.6);
       const baseHex = mixColors(darkColor, lightColor, mixT);
@@ -598,9 +600,10 @@ export async function grassScene(x: number, y: number, w: number, h: number): Pr
   //   4. plantTufts front
   //   5. flowers
   plantLeavesInBand(y, crestYFunction(backHill.pts), LEAF_DARK, LEAF_LIGHT, 6500, leafEllipses);
-  plantTufts(backHill.pts, midHill.pts, 10_000, BLADE_BACK, HILL_BACK, 0.4, 0.6, backTuftBlades);
-  plantTufts(midHill.pts, frontHill.pts, 8000, BLADE_MID, HILL_MID, 0.6, 0.85, midTuftBlades);
-  plantTufts(frontHill.pts, undefined, 8000, BLADE_FRONT, HILL_FRONT, 0.85, 1.2, frontTuftBlades);
+  // Scale ranges bumped ~1.4× to read as bigger, more geometric blades.
+  plantTufts(backHill.pts, midHill.pts, 10_000, BLADE_BACK, HILL_BACK, 0.55, 0.85, backTuftBlades);
+  plantTufts(midHill.pts, frontHill.pts, 8000, BLADE_MID, HILL_MID, 0.85, 1.2, midTuftBlades);
+  plantTufts(frontHill.pts, undefined, 8000, BLADE_FRONT, HILL_FRONT, 1.2, 1.7, frontTuftBlades);
 
   // Flowers scattered across all three hills.  Each flower picks a hill
   // Each layer pairs a hill (whose surface holds flowers) with the hill
@@ -623,7 +626,14 @@ export async function grassScene(x: number, y: number, w: number, h: number): Pr
   let attempts = 0;
   while (placed.length < flowerCount && attempts < maxAttempts) {
     attempts++;
-    const layerIndex = Math.floor(rng() * flowerLayers.length);
+    // Skew flower placement toward the front hills.  Without this the back
+    // hill collects a third of all flowers, which clutters the atmospheric
+    // perspective.  `Math.pow(r, 0.5)` shifts the distribution toward 1 →
+    // ~11% back, ~33% mid, ~56% front.
+    const layerIndex = Math.min(
+      flowerLayers.length - 1,
+      Math.floor(Math.pow(rng(), 0.5) * flowerLayers.length),
+    );
     const layer = flowerLayers[layerIndex];
     const gx = x + margin + 3 + rng() * (w - 2 * (margin + 3));
     // Scatter the base anywhere in the visible band [thisCrest, nextCrest].
