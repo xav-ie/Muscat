@@ -37,12 +37,7 @@ interface Field {
 // Rasterized to a hidden <canvas>, then embedded as an SVG <image> so the
 // per-pixel math runs once at render time and the result composites with
 // the rest of the SVG.
-export function waterCaustics(
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-): void {
+export function waterCaustics(x: number, y: number, w: number, h: number): void {
   // Render resolution — 4x the banner dimensions in mm, so each mm has
   // 4 pixels.  Higher = sharper caustics, but more work.  We're in a
   // banner ~285x35mm so this is ~1140x140px = 160k pixels — fast.
@@ -88,10 +83,7 @@ export function waterCaustics(
     const bucketSize = cellSpacing;
     const gridCols = Math.ceil(W / bucketSize) + 1;
     const gridRows = Math.ceil(H / bucketSize) + 1;
-    const grid: [number, number][][] = Array.from(
-      { length: gridCols * gridRows },
-      () => [],
-    );
+    const grid: [number, number][][] = Array.from({ length: gridCols * gridRows }, () => []);
     for (const s of seeds) {
       const gx = Math.min(gridCols - 1, Math.floor(s[0] / bucketSize));
       const gy = Math.min(gridRows - 1, Math.floor(s[1] / bucketSize));
@@ -124,25 +116,15 @@ export function waterCaustics(
       v = py / H;
     const A1 = amp;
     const A2 = A1 * 0.33;
-    const wx =
-      Math.sin(u * 8 + v * 6 + ph1x) * A1 +
-      Math.sin(u * 21 - v * 11 + ph2x) * A2;
-    const wy =
-      Math.sin(v * 8 + u * 6 + ph1y) * A1 +
-      Math.sin(v * 21 - u * 11 + ph2y) * A2;
+    const wx = Math.sin(u * 8 + v * 6 + ph1x) * A1 + Math.sin(u * 21 - v * 11 + ph2x) * A2;
+    const wy = Math.sin(v * 8 + u * 6 + ph1y) * A1 + Math.sin(v * 21 - u * 11 + ph2y) * A2;
     return [px + wx * W, py + wy * H];
   }
 
   // Compute the threshold-mask `m` (0..1) for one field at a sample point.
   function fieldMask(field: Field, wux: number, wuy: number): number {
-    const gx = Math.min(
-      field.gridCols - 1,
-      Math.max(0, Math.floor(wux / field.bucketSize)),
-    );
-    const gy = Math.min(
-      field.gridRows - 1,
-      Math.max(0, Math.floor(wuy / field.bucketSize)),
-    );
+    const gx = Math.min(field.gridCols - 1, Math.max(0, Math.floor(wux / field.bucketSize)));
+    const gy = Math.min(field.gridRows - 1, Math.max(0, Math.floor(wuy / field.bucketSize)));
     let d1 = Infinity;
     let sumExp = 0;
     for (let dy = -2; dy <= 2; dy++) {

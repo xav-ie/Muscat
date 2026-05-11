@@ -33,10 +33,7 @@ export function svgLine(
   y1: number,
   x2: number,
   y2: number,
-  {
-    stroke = "#111",
-    strokeWidth = LINE_W,
-  }: { stroke?: string; strokeWidth?: number } = {},
+  { stroke = "#111", strokeWidth = LINE_W }: { stroke?: string; strokeWidth?: number } = {},
 ): SVGLineElement {
   const l = document.createElementNS(SVG_NS, "line");
   l.setAttribute("x1", String(x1));
@@ -92,13 +89,7 @@ export function svgImage(
 
 // Helper: build a rounded-rect path string. rough.js's rectangle() ignores rx,
 // so we hand-roll a path so corners stay round.
-export function roundedRectPath(
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-): string {
+export function roundedRectPath(x: number, y: number, w: number, h: number, r: number): string {
   r = Math.max(0, Math.min(r, w / 2, h / 2));
   if (r === 0) {
     return svg`M ${x} ${y} H ${x + w} V ${y + h} H ${x} Z`;
@@ -136,8 +127,7 @@ export function squareWithArrowPath(
   arrowLength: number,
   arrowHalf: number,
 ): string {
-  if (!arrowDirection || arrowLength <= 0)
-    return roundedRectPath(x, y, size, size, r);
+  if (!arrowDirection || arrowLength <= 0) return roundedRectPath(x, y, size, size, r);
   r = Math.max(0, Math.min(r, size / 2));
   const mid = size / 2;
   const xL = x,

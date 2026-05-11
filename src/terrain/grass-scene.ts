@@ -38,32 +38,6 @@ function crestYAt(crest: Point[], px: number): number {
   return crest[lo][1] + (crest[hi][1] - crest[lo][1]) * t;
 }
 
-// One flower: a small dot with a few petals around it.  Rendered as a single
-// filled circle (the bloom) with `petals` smaller circles around it.
-export function flower(cx: number, cy: number, color: string): void {
-  const petalR = 0.55;
-  const ringR = 1.1;
-  // 5 petal circles around a center
-  for (let index = 0; index < 5; index++) {
-    const a = index * ((Math.PI * 2) / 5);
-    const px = cx + Math.cos(a) * ringR;
-    const py = cy + Math.sin(a) * ringR;
-    const c = document.createElementNS(SVG_NS, "circle");
-    c.setAttribute("cx", String(px));
-    c.setAttribute("cy", String(py));
-    c.setAttribute("r", String(petalR));
-    c.setAttribute("fill", color);
-    layers.shapes.append(c);
-  }
-  // Yellow center dot
-  const center = document.createElementNS(SVG_NS, "circle");
-  center.setAttribute("cx", String(cx));
-  center.setAttribute("cy", String(cy));
-  center.setAttribute("r", String(petalR * 0.85));
-  center.setAttribute("fill", "#f4d65a");
-  layers.shapes.append(center);
-}
-
 // Composite grass scene: a few mounds with tufts cresting them, scattered
 // flowers, and individual blades around.
 export function grassScene(x: number, y: number, w: number, h: number): void {
@@ -113,8 +87,7 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
       pts.push([px, py]);
     }
     let d = svg`M ${x} ${y + h} L ${pts[0][0]} ${pts[0][1]} `;
-    for (let index = 1; index < pts.length; index++)
-      d += svg`L ${pts[index][0]} ${pts[index][1]} `;
+    for (let index = 1; index < pts.length; index++) d += svg`L ${pts[index][0]} ${pts[index][1]} `;
     d += svg`L ${x + w} ${y + h} Z`;
     return { pts, d, color };
   }
@@ -180,13 +153,7 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
   // banner, then dense dark leaves on top of it.  The rectangle covers
   // edge-to-edge so no banner fill shows above the leaves.
   layers.shapes.append(svgRect(x, y, w, h, BACKDROP));
-  plantLeavesInBand(
-    y,
-    crestYFunction(backHill.pts),
-    "#1f3e10",
-    "#2e5818",
-    6500,
-  );
+  plantLeavesInBand(y, crestYFunction(backHill.pts), "#1f3e10", "#2e5818", 6500);
 
   // Layer 1: back hill with DENSE grass blades.  Each blade randomly
   // mixes between BLADE_BACK and HILL_BACK for visible tonal striation
@@ -200,15 +167,7 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
 
   // Layer 3: front hill — DENSE grass with front striation.
   drawHill(frontHill);
-  plantTufts(
-    frontHill.pts,
-    undefined,
-    8000,
-    BLADE_FRONT,
-    HILL_FRONT,
-    0.85,
-    1.2,
-  );
+  plantTufts(frontHill.pts, undefined, 8000, BLADE_FRONT, HILL_FRONT, 0.85, 1.2);
 
   // ── Flowers on the front hill (drawn last, on top of all foliage) ──
   const flowerCount = 11;
@@ -280,7 +239,7 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
 // (most common — typical blade tone) to `lightColor` (the hill's base
 // color, less common — reads as sun-hit highlight or underlying ground
 // peeking through).  Plus a tiny per-blade jitter on top.
-export function grassTuftOnGround(
+function grassTuftOnGround(
   gx: number,
   gy: number,
   darkColor: string,
@@ -321,7 +280,7 @@ export function grassTuftOnGround(
 // Draw a flower: stem from (gx,gy) to (headX,headY), then a multi-petal
 // bloom at the head.  Petals are short ellipses arranged in a ring with
 // a center disc.
-export function drawFlower(
+function drawFlower(
   gx: number,
   gy: number,
   headX: number,

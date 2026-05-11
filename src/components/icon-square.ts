@@ -1,54 +1,13 @@
 import { SVG_NS, LINE_W, layers, getDefs } from "../state.js";
 import { ICONS } from "../constants.js";
 import { uid } from "../util/uid.js";
-import {
-  svgPath,
-  svgRect,
-  svgImage,
-  roundedRectPath,
-  squareWithArrowPath,
-} from "../svg/primitives.js";
+import { svgPath, svgImage, squareWithArrowPath } from "../svg/primitives.js";
 import type { ArrowDirection } from "../svg/primitives.js";
 
 export interface IconTheme {
   squareFill: string;
   iconColor: string;
   outline: string;
-}
-
-// Rough rounded square. If `fill` is set, a crisp SVG rect is laid down first
-// so the rough outline can wobble outside its edges without smearing the color.
-// Rounded square. If `fill` is set, a crisp SVG rect is laid down first so the
-// outline (now plain SVG, displaced by the grain filter) wobbles outside its
-// edges without smearing the color.
-export function square(
-  x: number,
-  y: number,
-  size: number,
-  {
-    fill = "none",
-    stroke = "#111",
-    strokeWidth = LINE_W,
-    radius = 1.5,
-  }: {
-    fill?: string;
-    stroke?: string;
-    strokeWidth?: number;
-    radius?: number;
-  } = {},
-): void {
-  if (fill && fill !== "none") {
-    layers.shapes.append(svgRect(x, y, size, size, fill, radius));
-  }
-  if (stroke && stroke !== "none") {
-    layers.shapes.append(
-      svgPath(roundedRectPath(x, y, size, size, radius), {
-        fill: "none",
-        stroke,
-        strokeWidth,
-      }),
-    );
-  }
 }
 
 // Tint-filter registry — maps a hex color to a filter id that recolors any
@@ -61,7 +20,7 @@ export function resetTintRegistry(): void {
   __tintRegistry.clear();
 }
 
-export function getTintFilterId(color: string): string {
+function getTintFilterId(color: string): string {
   const cached = __tintRegistry.get(color);
   if (cached !== undefined) return cached;
   const id = uid(`tint-${color.replace("#", "")}`);
@@ -108,15 +67,7 @@ export function iconSquare(
   const radius = 1.5;
   const arrowLength = arrowDirection ? size * 0.18 : 0; // matches the gap inside quadlet()
   const arrowHalf = arrowLength * 0.75;
-  const path = squareWithArrowPath(
-    x,
-    y,
-    size,
-    radius,
-    arrowDirection,
-    arrowLength,
-    arrowHalf,
-  );
+  const path = squareWithArrowPath(x, y, size, radius, arrowDirection, arrowLength, arrowHalf);
 
   // Crisp filled underlay (uniform color regardless of grain displacement)
   if (theme.squareFill && theme.squareFill !== "none") {

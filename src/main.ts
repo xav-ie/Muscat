@@ -11,9 +11,7 @@ function $<T extends Element>(selector: string, ctor: new () => T): T {
   const element = document.querySelector(selector);
   if (!element) throw new Error(`required element not found: ${selector}`);
   if (!(element instanceof ctor)) {
-    throw new TypeError(
-      `${selector} is not a ${ctor.name} (got ${element.constructor.name})`,
-    );
+    throw new TypeError(`${selector} is not a ${ctor.name} (got ${element.constructor.name})`);
   }
   return element;
 }
@@ -42,16 +40,12 @@ function fmt(v: number): string {
 gFreqElement.addEventListener("input", () => {
   G.grainFreq = Number.parseFloat(gFreqElement.value);
   gFreqValue.textContent = fmt(G.grainFreq);
-  document
-    .querySelector("#grain-turb")
-    ?.setAttribute("baseFrequency", String(G.grainFreq));
+  document.querySelector("#grain-turb")?.setAttribute("baseFrequency", String(G.grainFreq));
 });
 gScaleElement.addEventListener("input", () => {
   G.grainScale = Number.parseFloat(gScaleElement.value);
   gScaleValue.textContent = fmt(G.grainScale);
-  document
-    .querySelector("#grain-disp")
-    ?.setAttribute("scale", String(G.grainScale));
+  document.querySelector("#grain-disp")?.setAttribute("scale", String(G.grainScale));
 });
 
 // Export the SVG as a 12×18 inch PNG at the requested DPI.

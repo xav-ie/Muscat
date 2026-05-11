@@ -6,13 +6,7 @@ import { crackedDesert } from "./cracked-desert.js";
 import { waterCaustics } from "./water-caustics.js";
 import { grassScene } from "./grass-scene.js";
 
-export function decorateBanner(
-  s: number,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-): void {
+function decorateBanner(s: number, x: number, y: number, w: number, h: number): void {
   switch (s) {
     case 0: {
       // Lava — Voronoi rocks with glowing magma cracks between them.

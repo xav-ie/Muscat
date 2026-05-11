@@ -36,8 +36,7 @@ let _text: SVGElement | undefined;
 
 export const layers = {
   get shapes(): SVGElement {
-    if (!_shapes)
-      throw new Error("layers.shapes accessed before setupLayers()");
+    if (!_shapes) throw new Error("layers.shapes accessed before setupLayers()");
     return _shapes;
   },
   set shapes(element: SVGElement) {
@@ -57,7 +56,6 @@ export const layers = {
 // setupLayers hasn't run yet).
 export function getDefs(): SVGDefsElement {
   const defs = board.querySelector("defs");
-  if (!defs)
-    throw new Error("board <defs> not found — run setupLayers() first");
+  if (!defs) throw new Error("board <defs> not found — run setupLayers() first");
   return defs;
 }

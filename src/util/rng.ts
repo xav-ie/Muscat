@@ -1,5 +1,5 @@
 // Mulberry32 — small, fast PRNG with good distribution. Same seed → same sequence.
-export function mulberry32(a: number): () => number {
+function mulberry32(a: number): () => number {
   return function () {
     // mulberry32 mixes int32 state. `Math.imul(x, 1)` coerces the result to
     // a signed 32-bit integer (preserving overflow wrap), matching the

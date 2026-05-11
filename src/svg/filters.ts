@@ -208,10 +208,7 @@ export function setupLayers(): void {
   inkColor.setAttribute("type", "matrix");
   // Turbulence outputs grayscale-ish RGB.  Map all channels to 0 (black)
   // and use the source noise as alpha at 40% opacity.
-  inkColor.setAttribute(
-    "values",
-    "0 0 0 0 0 " + "0 0 0 0 0 " + "0 0 0 0 0 " + "0 0 0 0.40 0",
-  );
+  inkColor.setAttribute("values", "0 0 0 0 0 " + "0 0 0 0 0 " + "0 0 0 0 0 " + "0 0 0 0.40 0");
   inkColor.setAttribute("result", "inkDarkSpots");
   ink.append(inkColor);
 
@@ -264,10 +261,7 @@ export function setupLayers(): void {
   const insetColor = document.createElementNS(SVG_NS, "feColorMatrix");
   insetColor.setAttribute("in", "insetEdgeAlpha");
   insetColor.setAttribute("type", "matrix");
-  insetColor.setAttribute(
-    "values",
-    "0 0 0 0 0 " + "0 0 0 0 0 " + "0 0 0 0 0 " + "0 0 0 0.62 0",
-  );
+  insetColor.setAttribute("values", "0 0 0 0 0 " + "0 0 0 0 0 " + "0 0 0 0 0 " + "0 0 0 0.62 0");
   insetColor.setAttribute("result", "insetDark");
   ink.append(insetColor);
 

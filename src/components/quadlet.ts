@@ -8,12 +8,7 @@ import type { ArrowDirection } from "../svg/primitives.js";
 //   [jester ] → [lute   ]
 //      ↑           ↓
 //   [feather] ← [crystal]
-export function quadlet(
-  x: number,
-  y: number,
-  sq: number,
-  theme: IconTheme,
-): void {
+function quadlet(x: number, y: number, sq: number, theme: IconTheme): void {
   const gap = sq * 0.18; // gap between the 2x2 squares
   const iconKeys: string[][] = [
     ["jester", "lute"],

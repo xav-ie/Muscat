@@ -63,21 +63,14 @@ function buildSpine(
 
 // Filled tapered-ribbon polygon helper. Builds a polygon path that's
 // `widthAtBaseEnd` wide at the first point and tapers to `widthAtTipEnd`.
-function ribbonPath(
-  pts: Point[],
-  widthAtBaseEnd: number,
-  widthAtTipEnd: number,
-): string {
+function ribbonPath(pts: Point[], widthAtBaseEnd: number, widthAtTipEnd: number): string {
   const n = pts.length;
   if (n < 2) return "";
   const cumLength = [0];
   for (let index = 1; index < n; index++) {
     cumLength.push(
       cumLength[index - 1] +
-        Math.hypot(
-          pts[index][0] - pts[index - 1][0],
-          pts[index][1] - pts[index - 1][1],
-        ),
+        Math.hypot(pts[index][0] - pts[index - 1][0], pts[index][1] - pts[index - 1][1]),
     );
   }
   const total = cumLength[n - 1];
@@ -105,10 +98,8 @@ function ribbonPath(
     bot.push([pts[index][0] - nx * halfW, pts[index][1] - ny * halfW]);
   }
   let d = svg`M ${top[0][0]} ${top[0][1]} `;
-  for (let index = 1; index < n; index++)
-    d += svg`L ${top[index][0]} ${top[index][1]} `;
-  for (let index = n - 1; index >= 0; index--)
-    d += svg`L ${bot[index][0]} ${bot[index][1]} `;
+  for (let index = 1; index < n; index++) d += svg`L ${top[index][0]} ${top[index][1]} `;
+  for (let index = n - 1; index >= 0; index--) d += svg`L ${bot[index][0]} ${bot[index][1]} `;
   d += "Z";
   return d;
 }
@@ -122,10 +113,7 @@ function pointAlongPolyline(pts: Point[], t: number): AlongInfo | undefined {
   for (let index = 1; index < pts.length; index++) {
     cumLength.push(
       cumLength[index - 1] +
-        Math.hypot(
-          pts[index][0] - pts[index - 1][0],
-          pts[index][1] - pts[index - 1][1],
-        ),
+        Math.hypot(pts[index][0] - pts[index - 1][0], pts[index][1] - pts[index - 1][1]),
     );
   }
   const total = cumLength[pts.length - 1];
@@ -135,8 +123,7 @@ function pointAlongPolyline(pts: Point[], t: number): AlongInfo | undefined {
   while (index < pts.length && cumLength[index] < targetLength) index++;
   if (index >= pts.length) index = pts.length - 1;
   const segLength = cumLength[index] - cumLength[index - 1];
-  const segT =
-    segLength > 1e-6 ? (targetLength - cumLength[index - 1]) / segLength : 0;
+  const segT = segLength > 1e-6 ? (targetLength - cumLength[index - 1]) / segLength : 0;
   const x = pts[index - 1][0] + (pts[index][0] - pts[index - 1][0]) * segT;
   const y = pts[index - 1][1] + (pts[index][1] - pts[index - 1][1]) * segT;
   // Local tangent: prefer this segment's direction; if it's degenerate
@@ -172,25 +159,13 @@ function pointAlongPolyline(pts: Point[], t: number): AlongInfo | undefined {
 }
 
 // Counter-clockwise orientation predicate for three points.
-function ccw(
-  ax: number,
-  ay: number,
-  bx: number,
-  by: number,
-  cx: number,
-  cy: number,
-): boolean {
+function ccw(ax: number, ay: number, bx: number, by: number, cx: number, cy: number): boolean {
   return (cy - ay) * (bx - ax) > (by - ay) * (cx - ax);
 }
 
 // Segments (p1,p2) and (p3,p4) intersect at non-endpoint points. Endpoint
 // sharing is OK so branches can MEET at points without forming X.
-function segmentsIntersect(
-  p1: Point,
-  p2: Point,
-  p3: Point,
-  p4: Point,
-): boolean {
+function segmentsIntersect(p1: Point, p2: Point, p3: Point, p4: Point): boolean {
   const eps = 1e-6;
   if (Math.hypot(p1[0] - p3[0], p1[1] - p3[1]) < eps) return false;
   if (Math.hypot(p1[0] - p4[0], p1[1] - p4[1]) < eps) return false;
@@ -199,26 +174,20 @@ function segmentsIntersect(
   return (
     ccw(p1[0], p1[1], p3[0], p3[1], p4[0], p4[1]) !==
       ccw(p2[0], p2[1], p3[0], p3[1], p4[0], p4[1]) &&
-    ccw(p1[0], p1[1], p2[0], p2[1], p3[0], p3[1]) !==
-      ccw(p1[0], p1[1], p2[0], p2[1], p4[0], p4[1])
+    ccw(p1[0], p1[1], p2[0], p2[1], p3[0], p3[1]) !== ccw(p1[0], p1[1], p2[0], p2[1], p4[0], p4[1])
   );
 }
 
 // Test whether a candidate polyline crosses any segment in the existing
 // crack pool. `attachSegIndex` (optional): the index of a pool segment that
 // this candidate is intentionally attaching to — ignored in the cross-test.
-function polylineCrossesPool(
-  polyPts: Point[],
-  pool: CrackSeg[],
-  attachSegIndex?: number,
-): boolean {
+function polylineCrossesPool(polyPts: Point[], pool: CrackSeg[], attachSegIndex?: number): boolean {
   for (let index = 0; index < polyPts.length - 1; index++) {
     const a = polyPts[index],
       b = polyPts[index + 1];
     for (const [index_, seg] of pool.entries()) {
       if (index_ === attachSegIndex) continue;
-      if (segmentsIntersect(a, b, [seg.x1, seg.y1], [seg.x2, seg.y2]))
-        return true;
+      if (segmentsIntersect(a, b, [seg.x1, seg.y1], [seg.x2, seg.y2])) return true;
     }
   }
   return false;
@@ -243,12 +212,7 @@ function recordPolyline(polyPts: Point[], pool: CrackSeg[]): number {
 // shades, separated by thin dark cracks along the cell boundaries.  Uses
 // the same wavy-edge machinery so the cracks look like dried-mud fissures
 // rather than polygon outlines.
-export function crackedDesert(
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-): void {
+export function crackedDesert(x: number, y: number, w: number, h: number): void {
   // Baked configuration (chosen values)
   const count = 45;
   const noiseAmp = 0.115; // cell-edge wobble
@@ -270,10 +234,7 @@ export function crackedDesert(
     const expanded = v.expandedPolygon(c.poly);
     const path = document.createElementNS(SVG_NS, "path");
     path.setAttribute("d", v.straightClosedPath(expanded));
-    path.setAttribute(
-      "fill",
-      sandPalette[Math.floor(rng() * sandPalette.length)],
-    );
+    path.setAttribute("fill", sandPalette[Math.floor(rng() * sandPalette.length)]);
     cellGroup.append(path);
   }
   layers.shapes.append(cellGroup);
@@ -487,14 +448,7 @@ export function crackedDesert(
       const segs = Math.max(2, Math.round(innerSegs * (0.7 + rng() * 0.6)));
       // Per-crack jog varies — some are nearly straight, some wander
       const localJog = innerJog * (0.5 + rng() * 0.9);
-      const s = buildSpine(
-        startX,
-        startY,
-        target[0],
-        target[1],
-        segs,
-        localJog,
-      );
+      const s = buildSpine(startX, startY, target[0], target[1], segs, localJog);
       if (!s) continue;
 
       // Reject if this candidate would cross any existing crack.

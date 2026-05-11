@@ -32,12 +32,10 @@ export default defineConfig(
   },
   {
     rules: {
-      // Prettier 3.x downcases hex literals (`0xFF` → `0xff`); align this rule
-      // so they don't fight on every format pass.
-      "unicorn/number-literal-case": [
-        "error",
-        { hexadecimalValue: "lowercase" },
-      ],
+      // oxfmt (like prettier and biome) unconditionally downcases hex literals
+      // (`0xFF` → `0xff`); none expose a hex-case option. Align this rule with
+      // the formatter so they don't fight on every format pass.
+      "unicorn/number-literal-case": ["error", { hexadecimalValue: "lowercase" }],
     },
   },
 );

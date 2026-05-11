@@ -59,14 +59,7 @@ export function render(): void {
   // area), so it has the same 4mm gap to the castle that "8"/"6"/etc. have to
   // their quadlet rows.  The right "10" stays at the paper-edge anchor.
   const castleLeftNumberX = castleInset - numberEdgePad;
-  edgeNumber(
-    castleLeftNumberX,
-    castleMidY,
-    "10",
-    "#111",
-    numberFontSize,
-    "end",
-  );
+  edgeNumber(castleLeftNumberX, castleMidY, "10", "#111", numberFontSize, "end");
   edgeNumber(rightNumberX, castleMidY, "10", "#111", numberFontSize, "end");
 
   // ── Title banner — drawn AFTER the castle so it overlays the castle wall.
@@ -158,15 +151,10 @@ export function render(): void {
   // Title text — Kranky, sized to fit the banner height, centered horizontally
   // within the rectangular body (not extending into the tails).  White text
   // with a subtle dark-purple stroke outline for readability.
-  edgeNumber(
-    (bodyL + bodyR) / 2,
-    tM,
-    "Muscat",
-    "#ffffff",
-    titleH * 0.85,
-    "middle",
-    { color: BANNER_SHADOW, width: LINE_W },
-  );
+  edgeNumber((bodyL + bodyR) / 2, tM, "Muscat", "#ffffff", titleH * 0.85, "middle", {
+    color: BANNER_SHADOW,
+    width: LINE_W,
+  });
 
   // ── Four sections of [quadlet row + terrain banner]
   // Castle moved up + smaller bottom margin + smaller inter-section gap
@@ -217,37 +205,9 @@ export function render(): void {
     // Edge labels — black for quadlet rows, red for banners.  All same size.
     const quadMidY = sy + quadH / 2;
     const bannerMidY = bannerY + bannerH / 2;
-    edgeNumber(
-      leftNumberX,
-      quadMidY,
-      quadletNums[s],
-      "#111",
-      numberFontSize,
-      "end",
-    );
-    edgeNumber(
-      rightNumberX,
-      quadMidY,
-      quadletNums[s],
-      "#111",
-      numberFontSize,
-      "end",
-    );
-    edgeNumber(
-      leftNumberX,
-      bannerMidY,
-      bannerNums[s],
-      "#E31D1D",
-      numberFontSize,
-      "end",
-    );
-    edgeNumber(
-      rightNumberX,
-      bannerMidY,
-      bannerNums[s],
-      "#E31D1D",
-      numberFontSize,
-      "end",
-    );
+    edgeNumber(leftNumberX, quadMidY, quadletNums[s], "#111", numberFontSize, "end");
+    edgeNumber(rightNumberX, quadMidY, quadletNums[s], "#111", numberFontSize, "end");
+    edgeNumber(leftNumberX, bannerMidY, bannerNums[s], "#E31D1D", numberFontSize, "end");
+    edgeNumber(rightNumberX, bannerMidY, bannerNums[s], "#E31D1D", numberFontSize, "end");
   }
 }

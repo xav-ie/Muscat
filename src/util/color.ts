@@ -1,7 +1,7 @@
 import { random } from "./rng.js";
 
 // Parse a 6-digit hex color (with leading '#') to an [r, g, b] tuple.
-export function hexToRgb(hex: string): [number, number, number] {
+function hexToRgb(hex: string): [number, number, number] {
   return [
     Number.parseInt(hex.slice(1, 3), 16),
     Number.parseInt(hex.slice(3, 5), 16),
@@ -19,7 +19,7 @@ function channelHex(v: number): string {
 
 // Format an [r, g, b] (or three numeric channels) back to a `#RRGGBB` string,
 // clamping to 0-255 and rounding fractional values.
-export function rgbToHex(r: number, g: number, b: number): string {
+function rgbToHex(r: number, g: number, b: number): string {
   return `#${channelHex(r)}${channelHex(g)}${channelHex(b)}`;
 }
 

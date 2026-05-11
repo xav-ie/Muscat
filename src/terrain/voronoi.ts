@@ -3,8 +3,8 @@ import { random as rng } from "../util/rng.js";
 import { poissonDisk } from "../util/poisson.js";
 
 export type Point = [number, number];
-export type Polygon = Point[];
-export interface VoronoiCell {
+type Polygon = Point[];
+interface VoronoiCell {
   seed: Point;
   poly: Polygon;
 }
@@ -33,7 +33,7 @@ export interface VoronoiToolkit {
 // rect and successively clip it against the perpendicular bisector of every
 // OTHER seed.  Inefficient (O(n²) per cell, O(n³) total) but n is small
 // (~25) so it's instant.
-export function clipPolygonByHalfplane(
+function clipPolygonByHalfplane(
   poly: Polygon,
   ax: number,
   ay: number,
@@ -65,10 +65,7 @@ export function clipPolygonByHalfplane(
     if (currentIn !== nxtIn) {
       // Compute intersection of segment cur→nxt with the line
       const t = sCurrent / (sCurrent - sNxt);
-      out.push([
-        current[0] + t * (nxt[0] - current[0]),
-        current[1] + t * (nxt[1] - current[1]),
-      ]);
+      out.push([current[0] + t * (nxt[0] - current[0]), current[1] + t * (nxt[1] - current[1])]);
     }
   }
   return out;
@@ -148,10 +145,7 @@ export function voronoiCellsWithWavyEdges(
     const k = jitterKey(p);
     const cached = jitterMap.get(k);
     if (cached) return cached;
-    const fresh: Point = [
-      p[0] + (rng() - 0.5) * JITTER,
-      p[1] + (rng() - 0.5) * JITTER,
-    ];
+    const fresh: Point = [p[0] + (rng() - 0.5) * JITTER, p[1] + (rng() - 0.5) * JITTER];
     jitterMap.set(k, fresh);
     return fresh;
   }
@@ -211,9 +205,7 @@ export function voronoiCellsWithWavyEdges(
       out.push(a);
       const mids = getEdgeNoise(a, b);
       if (isCanonicalForward(a, b)) for (const p of mids) out.push(p);
-      else
-        for (let index = mids.length - 1; index >= 0; index--)
-          out.push(mids[index]);
+      else for (let index = mids.length - 1; index >= 0; index--) out.push(mids[index]);
     }
     return out;
   }
@@ -221,18 +213,12 @@ export function voronoiCellsWithWavyEdges(
   function smoothClosedPath(pts: Polygon): string {
     const n = pts.length;
     if (n < 3) return "";
-    const startMid: Point = [
-      (pts[n - 1][0] + pts[0][0]) / 2,
-      (pts[n - 1][1] + pts[0][1]) / 2,
-    ];
+    const startMid: Point = [(pts[n - 1][0] + pts[0][0]) / 2, (pts[n - 1][1] + pts[0][1]) / 2];
     let d = svg`M ${startMid[0]} ${startMid[1]} `;
     for (let index = 0; index < n; index++) {
       const current = pts[index];
       const next = pts[(index + 1) % n];
-      const mid: Point = [
-        (current[0] + next[0]) / 2,
-        (current[1] + next[1]) / 2,
-      ];
+      const mid: Point = [(current[0] + next[0]) / 2, (current[1] + next[1]) / 2];
       d += svg`Q ${current[0]} ${current[1]} ${mid[0]} ${mid[1]} `;
     }
     d += "Z";
@@ -242,16 +228,12 @@ export function voronoiCellsWithWavyEdges(
   function smoothOpenPath(pts: Polygon): string {
     const n = pts.length;
     if (n < 2) return "";
-    if (n === 2)
-      return svg`M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]} `;
+    if (n === 2) return svg`M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]} `;
     let d = svg`M ${pts[0][0]} ${pts[0][1]} `;
     for (let index = 1; index < n - 1; index++) {
       const current = pts[index];
       const next = pts[index + 1];
-      const mid: Point = [
-        (current[0] + next[0]) / 2,
-        (current[1] + next[1]) / 2,
-      ];
+      const mid: Point = [(current[0] + next[0]) / 2, (current[1] + next[1]) / 2];
       d += svg`Q ${current[0]} ${current[1]} ${mid[0]} ${mid[1]} `;
     }
     d += svg`L ${pts[n - 1][0]} ${pts[n - 1][1]} `;
@@ -265,8 +247,7 @@ export function voronoiCellsWithWavyEdges(
     const n = pts.length;
     if (n < 3) return "";
     let d = svg`M ${pts[0][0]} ${pts[0][1]} `;
-    for (let index = 1; index < n; index++)
-      d += svg`L ${pts[index][0]} ${pts[index][1]} `;
+    for (let index = 1; index < n; index++) d += svg`L ${pts[index][0]} ${pts[index][1]} `;
     d += "Z";
     return d;
   }
@@ -274,8 +255,7 @@ export function voronoiCellsWithWavyEdges(
     const n = pts.length;
     if (n < 2) return "";
     let d = svg`M ${pts[0][0]} ${pts[0][1]} `;
-    for (let index = 1; index < n; index++)
-      d += svg`L ${pts[index][0]} ${pts[index][1]} `;
+    for (let index = 1; index < n; index++) d += svg`L ${pts[index][0]} ${pts[index][1]} `;
     return d;
   }
 

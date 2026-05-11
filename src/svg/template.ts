@@ -8,10 +8,7 @@
 // is the proper architectural fix rather than a per-site bypass.
 //
 //     const d = svg`M ${x} ${y} L ${x + w} ${y}`;
-export function svg(
-  strings: TemplateStringsArray,
-  ...values: (string | number)[]
-): string {
+export function svg(strings: TemplateStringsArray, ...values: (string | number)[]): string {
   let result = "";
   for (const [index, string_] of strings.entries()) {
     result += string_;

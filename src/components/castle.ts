@@ -1,16 +1,8 @@
 import { SVG_NS, LINE_W, layers } from "../state.js";
 import { svg } from "../svg/template.js";
 import { uid } from "../util/uid.js";
-import {
-  svgPath,
-  svgRect,
-  svgLine,
-  roundedRectPath,
-} from "../svg/primitives.js";
-import {
-  applyInsetShadow,
-  makeInsetShadowFilter,
-} from "../svg/inset-shadow.js";
+import { svgPath, svgRect, svgLine, roundedRectPath } from "../svg/primitives.js";
+import { applyInsetShadow, makeInsetShadowFilter } from "../svg/inset-shadow.js";
 import { edgeNumber } from "./edge-number.js";
 
 // Castle at the top of the board.
@@ -95,22 +87,12 @@ export function castle(x: number, y: number, w: number, h: number): void {
   }
   // Drop to body roof (merlon level), then crenellate across body
   d += svg` L ${x + towerW} ${bodyTop}`;
-  for (const [px, py] of crenellate(
-    x + towerW,
-    x + towerW + bodyW,
-    bodyTop,
-    bodyMerlons,
-  )) {
+  for (const [px, py] of crenellate(x + towerW, x + towerW + bodyW, bodyTop, bodyMerlons)) {
     d += svg` L ${px} ${py}`;
   }
   // Rise to right tower top, crenellate
   d += svg` L ${x + towerW + bodyW} ${towerTop}`;
-  for (const [px, py] of crenellate(
-    x + towerW + bodyW,
-    x + w,
-    towerTop,
-    towerMerlons,
-  )) {
+  for (const [px, py] of crenellate(x + towerW + bodyW, x + w, towerTop, towerMerlons)) {
     d += svg` L ${px} ${py}`;
   }
   // Down the right side to ground, close
@@ -190,12 +172,8 @@ export function castle(x: number, y: number, w: number, h: number): void {
   // Each tower's bricks anchor at its OWN top-left so the merlons line up
   // with full bricks underneath, not half-bricks.
   localDefs.append(makeBrickPattern(ltPatId, towerBrickW, x, towerTop));
-  localDefs.append(
-    makeBrickPattern(rtPatId, towerBrickW, x + towerW + bodyW, towerTop),
-  );
-  localDefs.append(
-    makeBrickPattern(bodyPatId, bodyBrickW, x + towerW, bodyTop),
-  );
+  localDefs.append(makeBrickPattern(rtPatId, towerBrickW, x + towerW + bodyW, towerTop));
+  localDefs.append(makeBrickPattern(bodyPatId, bodyBrickW, x + towerW, bodyTop));
 
   // Clip paths so each fill region stays within its column.  Easier than the
   // full silhouette: clip to a simple rectangle per section (left tower,
@@ -222,12 +200,8 @@ export function castle(x: number, y: number, w: number, h: number): void {
   const bClipId = uid("clipb");
   const rtClipId = uid("cliprt");
   localDefs.append(clipRectId(ltClipId, x, towerTop, towerW, h));
-  localDefs.append(
-    clipRectId(bClipId, x + towerW, bodyTop, bodyW, h - (bodyTop - towerTop)),
-  );
-  localDefs.append(
-    clipRectId(rtClipId, x + towerW + bodyW, towerTop, towerW, h),
-  );
+  localDefs.append(clipRectId(bClipId, x + towerW, bodyTop, bodyW, h - (bodyTop - towerTop)));
+  localDefs.append(clipRectId(rtClipId, x + towerW + bodyW, towerTop, towerW, h));
   layers.shapes.append(localDefs);
 
   // Brick fill: instead of tiling a pattern (which causes subtle tile-boundary
@@ -298,25 +272,14 @@ export function castle(x: number, y: number, w: number, h: number): void {
   }
 
   paintBricks(x, towerTop, towerW, h, towerBrickW, ltClipId);
-  paintBricks(
-    x + towerW,
-    bodyTop,
-    bodyW,
-    h - (bodyTop - towerTop),
-    bodyBrickW,
-    bClipId,
-  );
+  paintBricks(x + towerW, bodyTop, bodyW, h - (bodyTop - towerTop), bodyBrickW, bClipId);
   paintBricks(x + towerW + bodyW, towerTop, towerW, h, towerBrickW, rtClipId);
 
   // 3D illusion on the towers — each tower gets its OWN horizontal gradient
   // in user-space coordinates, going dark → transparent → dark across its
   // full width.  At 50% black opacity the effect is subtle but clearly
   // suggests cylindrical shading.
-  function makeTowerGradient(
-    id: string,
-    x0: number,
-    x1: number,
-  ): SVGLinearGradientElement {
+  function makeTowerGradient(id: string, x0: number, x1: number): SVGLinearGradientElement {
     const g = document.createElementNS(SVG_NS, "linearGradient");
     g.setAttribute("id", id);
     g.setAttribute("gradientUnits", "userSpaceOnUse");
@@ -505,11 +468,7 @@ export function castle(x: number, y: number, w: number, h: number): void {
   innerShadowGroup.setAttribute("clip-path", `url(#${frameClipId})`);
   set(innerShadowGroup, "opacity", 0.55);
   // Use a tiny blur for softness
-  const innerBlurId = makeInsetShadowFilter(
-    localDefs,
-    "frameinner",
-    frameThickness * 0.3,
-  );
+  const innerBlurId = makeInsetShadowFilter(localDefs, "frameinner", frameThickness * 0.3);
   innerShadowGroup.setAttribute("filter", `url(#${innerBlurId})`);
   const innerShadowStroke = document.createElementNS(SVG_NS, "path");
   innerShadowStroke.setAttribute("d", archD);
@@ -564,11 +523,7 @@ export function castle(x: number, y: number, w: number, h: number): void {
   // Even-indexed planks: joints at viewport y = TILE_H, 2*TILE_H, 3*TILE_H ...
   // Odd-indexed planks: joints at TILE_H/2, 3*TILE_H/2, 5*TILE_H/2 ...
   // (matches the running-bond stagger from the original pattern.)
-  function plankJoints(
-    plankLeftX: number,
-    plankRightX: number,
-    parity: number,
-  ): string {
+  function plankJoints(plankLeftX: number, plankRightX: number, parity: number): string {
     // parity 0 = joints at TILE_H * k for k = 1, 2, 3...
     // parity 1 = joints at TILE_H * (k + 0.5) for k = 0, 1, 2...
     let dString = "";
@@ -722,27 +677,9 @@ export function castle(x: number, y: number, w: number, h: number): void {
   }
   // Left door: seam is on the RIGHT edge of the half.  Gradient runs from
   // seam (dark) leftward (clear).  Spread = 0.20 of arch width — chosen value.
-  doorEdgeGradient(
-    "l-seam",
-    seamX,
-    0,
-    seamX - archW * 0.2,
-    0,
-    dlClipId,
-    DOOR_SHADOW_OPACITY,
-    1,
-  );
+  doorEdgeGradient("l-seam", seamX, 0, seamX - archW * 0.2, 0, dlClipId, DOOR_SHADOW_OPACITY, 1);
   // Right door: seam is on the LEFT edge of the half.
-  doorEdgeGradient(
-    "r-seam",
-    seamX,
-    0,
-    seamX + archW * 0.2,
-    0,
-    drClipId,
-    DOOR_SHADOW_OPACITY,
-    1,
-  );
+  doorEdgeGradient("r-seam", seamX, 0, seamX + archW * 0.2, 0, drClipId, DOOR_SHADOW_OPACITY, 1);
 
   // Outline on top
   layers.shapes.append(
@@ -867,17 +804,12 @@ export function castle(x: number, y: number, w: number, h: number): void {
     );
     // 4. Inset shadow gives a soft frame of darkening just inside the
     //    window edge.
-    applyInsetShadow(
-      layers.shapes,
-      roundedRectPath(sx, sy, sqSize, sqSize, 0.6),
-      localDefs,
-      {
-        color: "#0a3a6b",
-        thickness: sqSize * 0.22,
-        blur: sqSize * 0.08,
-        opacity: 0.85,
-      },
-    );
+    applyInsetShadow(layers.shapes, roundedRectPath(sx, sy, sqSize, sqSize, 0.6), localDefs, {
+      color: "#0a3a6b",
+      thickness: sqSize * 0.22,
+      blur: sqSize * 0.08,
+      opacity: 0.85,
+    });
 
     // Sill — gray rectangle bridging the gap to the next row.
     const sillX = sx - sillExtend;
@@ -885,17 +817,12 @@ export function castle(x: number, y: number, w: number, h: number): void {
     const sillW = sqSize + sillExtend * 2;
     layers.shapes.append(svgRect(sillX, sillY, sillW, sillH, BRICK_FILL, 0.3));
     // Gentle inset shadow on the sill — small region, subtle
-    applyInsetShadow(
-      layers.shapes,
-      roundedRectPath(sillX, sillY, sillW, sillH, 0.3),
-      localDefs,
-      {
-        color: "#3a3a3a",
-        thickness: sillH * 0.4,
-        blur: sillH * 0.15,
-        opacity: 0.35,
-      },
-    );
+    applyInsetShadow(layers.shapes, roundedRectPath(sillX, sillY, sillW, sillH, 0.3), localDefs, {
+      color: "#3a3a3a",
+      thickness: sillH * 0.4,
+      blur: sillH * 0.15,
+      opacity: 0.35,
+    });
     // Thin outline
     layers.shapes.append(
       svgPath(roundedRectPath(sillX, sillY, sillW, sillH, 0.3), {
@@ -910,10 +837,7 @@ export function castle(x: number, y: number, w: number, h: number): void {
   const leftStartX = bodyX + bodyW * 0.07;
   for (let r = 0; r < 2; r++) {
     for (let c = 0; c < 2; c++) {
-      placeWindow(
-        leftStartX + c * (sqSize + sqGap),
-        r === 0 ? sqRowY1 : sqRowY2,
-      );
+      placeWindow(leftStartX + c * (sqSize + sqGap), r === 0 ? sqRowY1 : sqRowY2);
     }
   }
 
@@ -925,15 +849,10 @@ export function castle(x: number, y: number, w: number, h: number): void {
       const sy = r === 0 ? sqRowY1 : sqRowY2;
       placeWindow(sx, sy);
       if (c === 1) {
-        edgeNumber(
-          sx + sqSize / 2,
-          sy + sqSize / 2,
-          "4/5",
-          "#ffffff",
-          sqSize * 0.55,
-          "middle",
-          { color: WINDOW_OUTLINE, width: LINE_W * 2 },
-        );
+        edgeNumber(sx + sqSize / 2, sy + sqSize / 2, "4/5", "#ffffff", sqSize * 0.55, "middle", {
+          color: WINDOW_OUTLINE,
+          width: LINE_W * 2,
+        });
       }
     }
   }

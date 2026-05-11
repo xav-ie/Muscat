@@ -54,11 +54,7 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   // randomVector — straight port of Quilez's HLSL.  Deterministic per cell
   // coordinate, so adjacent pixels in the same cell get the same control.
   const angleOffset = rng() * 1000; // global per-render randomness
-  function randomVector(
-    cellX: number,
-    cellY: number,
-    ang: number,
-  ): [number, number] {
+  function randomVector(cellX: number, cellY: number, ang: number): [number, number] {
     // Same matrix multiply / sin / fract as the shader
     const m00 = 15.27,
       m01 = 47.63,
@@ -76,10 +72,7 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   }
 
   // distFromEdge field.  Returns { distFromCenter, distFromEdge }.
-  function voronoiField(
-    uvX: number,
-    uvY: number,
-  ): { dCenter: number; dEdge: number } {
+  function voronoiField(uvX: number, uvY: number): { dCenter: number; dEdge: number } {
     const sX = uvX * cellDensity,
       sY = uvY * cellDensity;
     const cellX = Math.floor(sX),
@@ -174,12 +167,8 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   function flowUV(uvX: number, uvY: number): [number, number] {
     const A1 = flowStrength;
     const A2 = A1 * 0.33;
-    const wx =
-      Math.sin(uvX * 8 + uvY * 6 + ph1x) * A1 +
-      Math.sin(uvX * 21 - uvY * 11 + ph2x) * A2;
-    const wy =
-      Math.sin(uvY * 8 + uvX * 6 + ph1y) * A1 +
-      Math.sin(uvY * 21 - uvX * 11 + ph2y) * A2;
+    const wx = Math.sin(uvX * 8 + uvY * 6 + ph1x) * A1 + Math.sin(uvX * 21 - uvY * 11 + ph2x) * A2;
+    const wy = Math.sin(uvY * 8 + uvX * 6 + ph1y) * A1 + Math.sin(uvY * 21 - uvX * 11 + ph2y) * A2;
     return [uvX + wx, uvY + wy];
   }
 
@@ -197,12 +186,8 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
     const f1 = 14;
     const n1 =
       Math.sin(uvX * f1 + eph[0]) * Math.cos(uvY * f1 + eph[1]) * 1 +
-      Math.sin(uvX * f1 * 2.1 + eph[2]) *
-        Math.cos(uvY * f1 * 2.1 + eph[3]) *
-        0.5 +
-      Math.sin(uvX * f1 * 4.3 + eph[4]) *
-        Math.cos(uvY * f1 * 4.3 + eph[5]) *
-        0.25;
+      Math.sin(uvX * f1 * 2.1 + eph[2]) * Math.cos(uvY * f1 * 2.1 + eph[3]) * 0.5 +
+      Math.sin(uvX * f1 * 4.3 + eph[4]) * Math.cos(uvY * f1 * 4.3 + eph[5]) * 0.25;
     return n1 * (1 / 1.75); // normalize so peak ~ ±1
   }
 
@@ -238,11 +223,7 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   // Color mix helpers
   type RGB = [number, number, number];
   function lerp3(a: RGB, b: RGB, t: number): RGB {
-    return [
-      a[0] + (b[0] - a[0]) * t,
-      a[1] + (b[1] - a[1]) * t,
-      a[2] + (b[2] - a[2]) * t,
-    ];
+    return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
   }
 
   // Color palettes
@@ -279,8 +260,7 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
       //   * craggyNoise (high freq) → ragged jagged edge details
       //   * wobbleNoise (low freq, cellDensity-scale) → smooth wavy lines
       //     along edges (matches the desert's wobbly look)
-      const perturbation =
-        craggyNoise(u0, v0) * cragginess + wobbleNoise(u0, v0) * wobble;
+      const perturbation = craggyNoise(u0, v0) * cragginess + wobbleNoise(u0, v0) * wobble;
       fieldArray[py * W + px] = f.dEdge + perturbation;
     }
   }
@@ -304,18 +284,10 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
         xR = Math.min(W - 1, px + 1);
       const yT = Math.max(0, py - 1),
         yB = Math.min(H - 1, py + 1);
-      const hL = heightFunction(
-        Math.max(0, fieldArray[py * W + xL] - thickness),
-      );
-      const hR = heightFunction(
-        Math.max(0, fieldArray[py * W + xR] - thickness),
-      );
-      const hT = heightFunction(
-        Math.max(0, fieldArray[yT * W + px] - thickness),
-      );
-      const hB = heightFunction(
-        Math.max(0, fieldArray[yB * W + px] - thickness),
-      );
+      const hL = heightFunction(Math.max(0, fieldArray[py * W + xL] - thickness));
+      const hR = heightFunction(Math.max(0, fieldArray[py * W + xR] - thickness));
+      const hT = heightFunction(Math.max(0, fieldArray[yT * W + px] - thickness));
+      const hB = heightFunction(Math.max(0, fieldArray[yB * W + px] - thickness));
       // dz/dx ≈ (hR - hL) * heightStrength * cellDensity
       // (cellDensity scales the field gradient back into UV-screen space)
       const dzdx = (hR - hL) * heightStrength * cellDensity * 0.5;

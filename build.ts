@@ -19,10 +19,7 @@ const ICON_FILES: Record<string, string> = {
 const b64 = (path: string) => readFileSync(path).toString("base64");
 
 const icons = Object.fromEntries(
-  Object.entries(ICON_FILES).map(([name, file]) => [
-    name,
-    b64(path.resolve(ASSETS, file)),
-  ]),
+  Object.entries(ICON_FILES).map(([name, file]) => [name, b64(path.resolve(ASSETS, file))]),
 );
 const krankyB64 = b64(path.resolve(ASSETS, "kranky-latin-400-normal.woff2"));
 
