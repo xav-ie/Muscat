@@ -146,10 +146,12 @@ export function squareWithArrowPath(
 
   // --- TOP EDGE (left → right) ---
   if (arrowDir === "up") {
-    parts.push(`H ${xL + mid - arrowHalf}`);
-    parts.push(`L ${xL + mid} ${yT - arrowLen}`);
-    parts.push(`L ${xL + mid + arrowHalf} ${yT}`);
-    parts.push(`H ${xR - r}`);
+    parts.push(
+      `H ${xL + mid - arrowHalf}`,
+      `L ${xL + mid} ${yT - arrowLen}`,
+      `L ${xL + mid + arrowHalf} ${yT}`,
+      `H ${xR - r}`,
+    );
   } else {
     parts.push(`H ${xR - r}`);
   }
@@ -157,10 +159,12 @@ export function squareWithArrowPath(
 
   // --- RIGHT EDGE (top → bottom) ---
   if (arrowDir === "right") {
-    parts.push(`V ${yT + mid - arrowHalf}`);
-    parts.push(`L ${xR + arrowLen} ${yT + mid}`);
-    parts.push(`L ${xR} ${yT + mid + arrowHalf}`);
-    parts.push(`V ${yB - r}`);
+    parts.push(
+      `V ${yT + mid - arrowHalf}`,
+      `L ${xR + arrowLen} ${yT + mid}`,
+      `L ${xR} ${yT + mid + arrowHalf}`,
+      `V ${yB - r}`,
+    );
   } else {
     parts.push(`V ${yB - r}`);
   }
@@ -168,10 +172,12 @@ export function squareWithArrowPath(
 
   // --- BOTTOM EDGE (right → left) ---
   if (arrowDir === "down") {
-    parts.push(`H ${xL + mid + arrowHalf}`);
-    parts.push(`L ${xL + mid} ${yB + arrowLen}`);
-    parts.push(`L ${xL + mid - arrowHalf} ${yB}`);
-    parts.push(`H ${xL + r}`);
+    parts.push(
+      `H ${xL + mid + arrowHalf}`,
+      `L ${xL + mid} ${yB + arrowLen}`,
+      `L ${xL + mid - arrowHalf} ${yB}`,
+      `H ${xL + r}`,
+    );
   } else {
     parts.push(`H ${xL + r}`);
   }
@@ -179,14 +185,15 @@ export function squareWithArrowPath(
 
   // --- LEFT EDGE (bottom → top) ---
   if (arrowDir === "left") {
-    parts.push(`V ${yT + mid + arrowHalf}`);
-    parts.push(`L ${xL - arrowLen} ${yT + mid}`);
-    parts.push(`L ${xL} ${yT + mid - arrowHalf}`);
-    parts.push(`V ${yT + r}`);
+    parts.push(
+      `V ${yT + mid + arrowHalf}`,
+      `L ${xL - arrowLen} ${yT + mid}`,
+      `L ${xL} ${yT + mid - arrowHalf}`,
+      `V ${yT + r}`,
+    );
   } else {
     parts.push(`V ${yT + r}`);
   }
-  parts.push(`Q ${xL} ${yT} ${xL + r} ${yT}`); // top-left corner
-  parts.push("Z");
+  parts.push(`Q ${xL} ${yT} ${xL + r} ${yT}`, "Z");
   return parts.join(" ");
 }

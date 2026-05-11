@@ -2,7 +2,7 @@ import { SVG_NS, board, G, layers } from "../state.js";
 import { KRANKY_B64 } from "../constants.js";
 
 export function clear(): void {
-  while (board.firstChild) board.removeChild(board.firstChild);
+  while (board.firstChild) board.firstChild.remove();
 }
 
 export function setupLayers(): void {
@@ -25,7 +25,7 @@ export function setupLayers(): void {
   turb.setAttribute("numOctaves", "2");
   turb.setAttribute("seed", String(G.seed));
   turb.setAttribute("result", "noise");
-  filter.appendChild(turb);
+  filter.append(turb);
 
   // Displace SourceGraphic by the noise.  scale is in viewBox units (mm).
   const disp = document.createElementNS(SVG_NS, "feDisplacementMap");
@@ -33,9 +33,9 @@ export function setupLayers(): void {
   disp.setAttribute("in", "SourceGraphic");
   disp.setAttribute("in2", "noise");
   disp.setAttribute("scale", String(G.grainScale));
-  filter.appendChild(disp);
+  filter.append(disp);
 
-  defs.appendChild(filter);
+  defs.append(filter);
 
   // Wood pattern for the castle door — vertical planks running floor-to-ceiling,
   // with HORIZONTAL joints between plank-ends staggered between adjacent planks.
@@ -54,12 +54,12 @@ export function setupLayers(): void {
   woodBg.setAttribute("width", String(TILE_W));
   woodBg.setAttribute("height", String(TILE_H));
   woodBg.setAttribute("fill", "#8b6f47");
-  wood.appendChild(woodBg);
+  wood.append(woodBg);
   // NOTE: All plank dividers (vertical AND horizontal joints) used to live
   // here, but they suffered displacement-filter artifacts inside <pattern>
   // that made them look thinner than continuous explicit strokes.  Both are
   // now drawn explicitly per-door, outside the pattern.
-  defs.appendChild(wood);
+  defs.append(wood);
 
   // Soft-blur filter — used on box-gradient overlays to smooth the corner
   // cross-hatch that arises when two semi-transparent linear gradients
@@ -72,8 +72,8 @@ export function setupLayers(): void {
   soft.setAttribute("height", "120%");
   const blur = document.createElementNS(SVG_NS, "feGaussianBlur");
   blur.setAttribute("stdDeviation", "0.6");
-  soft.appendChild(blur);
-  defs.appendChild(soft);
+  soft.append(blur);
+  defs.append(soft);
 
   // Magma glow — used on the bright cracks between Voronoi rocks in the
   // lava banner.  A blurred copy of the source is composited under the
@@ -89,16 +89,16 @@ export function setupLayers(): void {
   gblur.setAttribute("in", "SourceGraphic");
   gblur.setAttribute("stdDeviation", "1.4");
   gblur.setAttribute("result", "blurred");
-  glow.appendChild(gblur);
+  glow.append(gblur);
   // Composite original sharp graphic on top of the blur
   const merge = document.createElementNS(SVG_NS, "feMerge");
   for (const ref of ["blurred", "blurred", "SourceGraphic"]) {
     const node = document.createElementNS(SVG_NS, "feMergeNode");
     node.setAttribute("in", ref);
-    merge.appendChild(node);
+    merge.append(node);
   }
-  glow.appendChild(merge);
-  defs.appendChild(glow);
+  glow.append(merge);
+  defs.append(glow);
 
   // Parchment paper filter — subtly textured paper background using
   // turbulence + diffuse lighting.  Applied to a colored rect spanning
@@ -118,7 +118,7 @@ export function setupLayers(): void {
   pBig.setAttribute("numOctaves", "3");
   pBig.setAttribute("seed", "7");
   pBig.setAttribute("result", "bigNoise");
-  parch.appendChild(pBig);
+  parch.append(pBig);
   // 2. Color it: take the source color and modulate it down a tiny bit
   //    where the noise is high (creates soft brown patches).
   const ctBig = document.createElementNS(SVG_NS, "feColorMatrix");
@@ -133,7 +133,7 @@ export function setupLayers(): void {
       "0 0 0 0.18 0",
   ); // A → 18% of source-alpha noise
   ctBig.setAttribute("result", "stains");
-  parch.appendChild(ctBig);
+  parch.append(ctBig);
   // 3. Fine fiber noise — high frequency for paper texture.
   const pFine = document.createElementNS(SVG_NS, "feTurbulence");
   pFine.setAttribute("type", "fractalNoise");
@@ -141,7 +141,7 @@ export function setupLayers(): void {
   pFine.setAttribute("numOctaves", "2");
   pFine.setAttribute("seed", "13");
   pFine.setAttribute("result", "fineNoise");
-  parch.appendChild(pFine);
+  parch.append(pFine);
   // 4. Lighting: feDiffuseLighting with the fineNoise as the bump map
   //    gives the paper a tactile fiber texture.
   const lit = document.createElementNS(SVG_NS, "feDiffuseLighting");
@@ -153,8 +153,8 @@ export function setupLayers(): void {
   const dl = document.createElementNS(SVG_NS, "feDistantLight");
   dl.setAttribute("azimuth", "45");
   dl.setAttribute("elevation", "60");
-  lit.appendChild(dl);
-  parch.appendChild(lit);
+  lit.append(dl);
+  parch.append(lit);
   // 5. Composite the lit fibers in over the source graphic (the paper
   //    color rect).  Use 'arithmetic' to multiply gently so fibers
   //    show as soft modulation, not opaque overlay.
@@ -168,14 +168,14 @@ export function setupLayers(): void {
   compFiber.setAttribute("k3", "0.65"); // mostly the paper
   compFiber.setAttribute("k4", "0");
   compFiber.setAttribute("result", "fibered");
-  parch.appendChild(compFiber);
+  parch.append(compFiber);
   // 6. Composite the brown stains over the fibered paper.
   const compStains = document.createElementNS(SVG_NS, "feComposite");
   compStains.setAttribute("in", "stains");
   compStains.setAttribute("in2", "fibered");
   compStains.setAttribute("operator", "over");
-  parch.appendChild(compStains);
-  defs.appendChild(parch);
+  parch.append(compStains);
+  defs.append(parch);
 
   // Printed-on-paper filter — applied to the colored icon squares (and
   // any other shapes that should feel printed onto the parchment rather
@@ -200,7 +200,7 @@ export function setupLayers(): void {
   inkFiber.setAttribute("numOctaves", "2");
   inkFiber.setAttribute("seed", "23");
   inkFiber.setAttribute("result", "inkNoise");
-  ink.appendChild(inkFiber);
+  ink.append(inkFiber);
 
   // 1b. Map the noise into a darkening alpha (only dark fiber spots show)
   const inkColor = document.createElementNS(SVG_NS, "feColorMatrix");
@@ -213,7 +213,7 @@ export function setupLayers(): void {
     "0 0 0 0 0 " + "0 0 0 0 0 " + "0 0 0 0 0 " + "0 0 0 0.40 0",
   );
   inkColor.setAttribute("result", "inkDarkSpots");
-  ink.appendChild(inkColor);
+  ink.append(inkColor);
 
   // 1c. Mask the dark spots to the source shape only (composite operator='in')
   const inkMask = document.createElementNS(SVG_NS, "feComposite");
@@ -221,7 +221,7 @@ export function setupLayers(): void {
   inkMask.setAttribute("in2", "SourceGraphic");
   inkMask.setAttribute("operator", "in");
   inkMask.setAttribute("result", "inkMasked");
-  ink.appendChild(inkMask);
+  ink.append(inkMask);
 
   // 1d. Composite the masked dark spots OVER the source — this is the
   //     multiply-like effect: the source color stays mostly intact, with
@@ -231,7 +231,7 @@ export function setupLayers(): void {
   inkOver.setAttribute("in2", "SourceGraphic");
   inkOver.setAttribute("operator", "over");
   inkOver.setAttribute("result", "fibered");
-  ink.appendChild(inkOver);
+  ink.append(inkOver);
 
   // 2. Inset edge shadow — gives the shape a pressed-into-paper feel.
   //    Blur the source alpha, invert/offset it, mask to source area, then
@@ -240,7 +240,7 @@ export function setupLayers(): void {
   insetBlur.setAttribute("in", "SourceAlpha");
   insetBlur.setAttribute("stdDeviation", "3.00");
   insetBlur.setAttribute("result", "insetBlur");
-  ink.appendChild(insetBlur);
+  ink.append(insetBlur);
 
   // Make the inset darken: take blurred alpha, invert via component
   // transfer so center→opaque becomes center→transparent and vice versa
@@ -256,9 +256,9 @@ export function setupLayers(): void {
   // mid-alpha range (the BLURRED edge region) gets values between → this
   // is where the darkening lives.
   ifa.setAttribute("tableValues", "0 0.5 0");
-  insetInv.appendChild(ifa);
+  insetInv.append(ifa);
   insetInv.setAttribute("result", "insetEdgeAlpha");
-  ink.appendChild(insetInv);
+  ink.append(insetInv);
 
   // Color the inset alpha black at 62% opacity
   const insetColor = document.createElementNS(SVG_NS, "feColorMatrix");
@@ -269,7 +269,7 @@ export function setupLayers(): void {
     "0 0 0 0 0 " + "0 0 0 0 0 " + "0 0 0 0 0 " + "0 0 0 0.62 0",
   );
   insetColor.setAttribute("result", "insetDark");
-  ink.appendChild(insetColor);
+  ink.append(insetColor);
 
   // Mask the inset darkening to the source area only
   const insetMask = document.createElementNS(SVG_NS, "feComposite");
@@ -277,18 +277,18 @@ export function setupLayers(): void {
   insetMask.setAttribute("in2", "SourceGraphic");
   insetMask.setAttribute("operator", "in");
   insetMask.setAttribute("result", "insetMasked");
-  ink.appendChild(insetMask);
+  ink.append(insetMask);
 
   // Final composite: inset over fibered
   const finalComp = document.createElementNS(SVG_NS, "feComposite");
   finalComp.setAttribute("in", "insetMasked");
   finalComp.setAttribute("in2", "fibered");
   finalComp.setAttribute("operator", "over");
-  ink.appendChild(finalComp);
+  ink.append(finalComp);
 
-  defs.appendChild(ink);
+  defs.append(ink);
 
-  board.appendChild(defs);
+  board.append(defs);
 
   // Parchment background layer — papyrus rect filtered to look like aged
   // hand-crafted paper.  Sits behind everything else.  Sibling of the
@@ -301,17 +301,17 @@ export function setupLayers(): void {
   parchRect.setAttribute("width", "304.8");
   parchRect.setAttribute("height", "457.2");
   parchRect.setAttribute("fill", "#f5e8c4");
-  parchLayer.appendChild(parchRect);
-  board.appendChild(parchLayer);
+  parchLayer.append(parchRect);
+  board.append(parchLayer);
 
   // Shapes layer (filtered) — drawn first so it sits behind the text.
   layers.shapes = document.createElementNS(SVG_NS, "g");
   layers.shapes.setAttribute("filter", "url(#grain)");
-  board.appendChild(layers.shapes);
+  board.append(layers.shapes);
 
   // Text layer (unfiltered) — drawn last so numbers sit on top.
   layers.text = document.createElementNS(SVG_NS, "g");
-  board.appendChild(layers.text);
+  board.append(layers.text);
 }
 
 // Inject a <style> with the Kranky @font-face inside the SVG itself.  Required
@@ -328,5 +328,5 @@ export function ensureSvgFont(): void {
       src: url(data:font/woff2;base64,${KRANKY_B64}) format('woff2');
     }
   `;
-  board.appendChild(styleEl);
+  board.append(styleEl);
 }

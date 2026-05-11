@@ -29,7 +29,7 @@ export function grassTuft(cx: number, groundY: number, color: string): void {
     const ctrlX = bx + lean * 0.5 + (rng() - 0.5) * 0.6;
     const ctrlY = by - height * 0.5;
     const d = `M ${bx} ${by} Q ${ctrlX} ${ctrlY} ${tx} ${ty}`;
-    layers.shapes!.appendChild(
+    layers.shapes!.append(
       svgPath(d, {
         fill: "none",
         stroke: color,
@@ -75,7 +75,7 @@ export function wave(
     `M ${cx - half} ${cy} ` +
     `C ${cx - half * 0.5} ${cy - amp}, ${cx - half * 0.2} ${cy + amp}, ${cx} ${cy} ` +
     `C ${cx + half * 0.2} ${cy - amp}, ${cx + half * 0.5} ${cy + amp}, ${cx + half} ${cy}`;
-  layers.shapes!.appendChild(
+  layers.shapes!.append(
     svgPath(d, {
       fill: "none",
       stroke: color,

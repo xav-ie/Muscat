@@ -1,7 +1,10 @@
 import { SVG_NS, layers } from "../state.js";
 
 export type TextAlign = "start" | "middle" | "end";
-export interface TextOutline { color: string; width: number }
+export interface TextOutline {
+  color: string;
+  width: number;
+}
 
 // Number rendered with the Kranky display font.
 // `align` is one of 'start' | 'middle' | 'end' — picks the SVG text-anchor.
@@ -43,7 +46,7 @@ export function edgeNumber(
     minus.setAttribute("font-size", String(sizeMm * 0.55));
     minus.setAttribute("dominant-baseline", "central");
     minus.textContent = "-";
-    t.appendChild(minus);
+    t.append(minus);
     const rest = document.createElementNS(SVG_NS, "tspan");
     rest.setAttribute("dominant-baseline", "central");
     // dx on the DIGIT shifts it right relative to where it would naturally
@@ -51,9 +54,9 @@ export function edgeNumber(
     // minus only shifts both the minus AND the digit left together).
     rest.setAttribute("dx", String(2));
     rest.textContent = text.slice(1);
-    t.appendChild(rest);
+    t.append(rest);
   } else {
     t.textContent = text;
   }
-  layers.text!.appendChild(t);
+  layers.text!.append(t);
 }

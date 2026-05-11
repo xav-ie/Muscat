@@ -25,7 +25,7 @@ export function wavyGround(
     const t = i / samples;
     const px = x + t * w;
     const noise =
-      Math.sin(t * Math.PI * 2.0 + 0.4) * 0.55 +
+      Math.sin(t * Math.PI * 2 + 0.4) * 0.55 +
       Math.sin(t * Math.PI * 5.3 + 1.2) * 0.3 +
       Math.sin(t * Math.PI * 9.1) * 0.15;
     const py = crestY - amplitude * (0.5 + noise * 0.5);
@@ -38,5 +38,5 @@ export function wavyGround(
     d += `L ${pts[i][0]} ${pts[i][1]} `;
   }
   d += `L ${x + w} ${y + h} L ${x} ${y + h} Z`;
-  layers.shapes!.appendChild(svgPath(d, { fill: fillColor }));
+  layers.shapes!.append(svgPath(d, { fill: fillColor }));
 }

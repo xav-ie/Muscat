@@ -24,14 +24,14 @@ function fmt(v: number): string {
 // Grain sliders update the live filter attributes directly — cheap, doesn't
 // re-shuffle the wobble, just retunes the noise displacement.
 gFreqEl.addEventListener("input", () => {
-  G.grainFreq = parseFloat(gFreqEl.value);
+  G.grainFreq = Number.parseFloat(gFreqEl.value);
   gFreqVal.textContent = fmt(G.grainFreq);
   document
     .getElementById("grain-turb")
     ?.setAttribute("baseFrequency", String(G.grainFreq));
 });
 gScaleEl.addEventListener("input", () => {
-  G.grainScale = parseFloat(gScaleEl.value);
+  G.grainScale = Number.parseFloat(gScaleEl.value);
   gScaleVal.textContent = fmt(G.grainScale);
   document
     .getElementById("grain-disp")
@@ -65,12 +65,12 @@ async function exportPng(dpi = 300): Promise<void> {
   try {
     const img = new Image();
     await new Promise<void>((resolve, reject) => {
-      img.onload = () => {
+      img.addEventListener("load", () => {
         resolve();
-      };
-      img.onerror = () => {
+      });
+      img.addEventListener("error", () => {
         reject(new Error("SVG → image load failed"));
-      };
+      });
       img.src = url;
     });
 

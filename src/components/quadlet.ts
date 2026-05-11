@@ -40,7 +40,7 @@ export function quadlet(
   const inkGroup = document.createElementNS(SVG_NS, "g");
   inkGroup.setAttribute("filter", "url(#printed-on-paper)");
   inkGroup.setAttribute("opacity", "0.80");
-  saved!.appendChild(inkGroup);
+  saved!.append(inkGroup);
   layers.shapes = inkGroup;
   try {
     for (let r = 0; r < 2; r++) {

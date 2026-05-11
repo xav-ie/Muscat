@@ -21,6 +21,6 @@ export function embedCanvasAsImage(
   imgEl.setAttribute("preserveAspectRatio", "none");
   imgEl.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", dataURL);
   imgEl.setAttribute("href", dataURL);
-  parent.appendChild(imgEl);
+  parent.append(imgEl);
   return imgEl;
 }

@@ -25,7 +25,7 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   const heightStrength = 3.3;
   const flowStrength = 0.036;
   const cragginess = 0.06;
-  const edgeSmooth = 0.0 as number; // tuning knob — set >0 to enable smooth-min cell edges
+  const edgeSmooth = 0 as number; // tuning knob — set >0 to enable smooth-min cell edges
   const wobble = 0.06;
 
   // Render resolution — 4 px / mm, same as water
@@ -58,8 +58,8 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
       m11 = 89.98;
     let ux = cellX * m00 + cellY * m10;
     let uy = cellX * m01 + cellY * m11;
-    ux = Math.sin(ux) * 46839.32;
-    uy = Math.sin(uy) * 46839.32;
+    ux = Math.sin(ux) * 46_839.32;
+    uy = Math.sin(uy) * 46_839.32;
     ux = ux - Math.floor(ux);
     uy = uy - Math.floor(uy);
     const rx = Math.sin(uy * ang) * 0.5 + 0.5;
@@ -80,7 +80,7 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
       posY = sY - cellY;
 
     // Phase 1: closest cell point
-    let dCenter = 8.0;
+    let dCenter = 8;
     let coX = 0,
       coY = 0;
     for (let yy = -1; yy <= 1; yy++) {
@@ -109,7 +109,7 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
     let dEdge: number;
     if (edgeSmooth <= 0) {
       // Hard min — original Quilez behavior
-      dEdge = 8.0;
+      dEdge = 8;
       for (let yy = -1; yy <= 1; yy++) {
         for (let xx = -1; xx <= 1; xx++) {
           const rv = randomVector(cellX + xx, cellY + yy, angleOffset);
@@ -152,11 +152,7 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
       // Guard: if no valid neighbors contributed (all were the closest
       // cell — only happens at degenerate spots), fall back to the
       // closest-bisector hard-min equivalent.
-      if (sumExp <= 0) {
-        dEdge = 8.0;
-      } else {
-        dEdge = -k * Math.log(sumExp);
-      }
+      dEdge = sumExp <= 0 ? 8 : -k * Math.log(sumExp);
     }
     return { dCenter, dEdge };
   }
@@ -171,11 +167,11 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
     const A1 = flowStrength;
     const A2 = A1 * 0.33;
     const wx =
-      Math.sin(uvX * 8.0 + uvY * 6.0 + ph1x) * A1 +
-      Math.sin(uvX * 21.0 - uvY * 11.0 + ph2x) * A2;
+      Math.sin(uvX * 8 + uvY * 6 + ph1x) * A1 +
+      Math.sin(uvX * 21 - uvY * 11 + ph2x) * A2;
     const wy =
-      Math.sin(uvY * 8.0 + uvX * 6.0 + ph1y) * A1 +
-      Math.sin(uvY * 21.0 - uvX * 11.0 + ph2y) * A2;
+      Math.sin(uvY * 8 + uvX * 6 + ph1y) * A1 +
+      Math.sin(uvY * 21 - uvX * 11 + ph2y) * A2;
     return [uvX + wx, uvY + wy];
   }
 
@@ -190,16 +186,16 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   function craggyNoise(uvX: number, uvY: number): number {
     // 3 octaves of sin-product noise.  Each octave doubles the frequency
     // and halves the contribution.  Range roughly [-1, 1].
-    const f1 = 14.0;
+    const f1 = 14;
     const n1 =
-      Math.sin(uvX * f1 + eph[0]) * Math.cos(uvY * f1 + eph[1]) * 1.0 +
+      Math.sin(uvX * f1 + eph[0]) * Math.cos(uvY * f1 + eph[1]) * 1 +
       Math.sin(uvX * f1 * 2.1 + eph[2]) *
         Math.cos(uvY * f1 * 2.1 + eph[3]) *
         0.5 +
       Math.sin(uvX * f1 * 4.3 + eph[4]) *
         Math.cos(uvY * f1 * 4.3 + eph[5]) *
         0.25;
-    return n1 * (1.0 / 1.75); // normalize so peak ~ ±1
+    return n1 * (1 / 1.75); // normalize so peak ~ ±1
   }
 
   // Wobble — the same perturb-dEdge-directly trick as cragginess, but at
@@ -211,14 +207,12 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   // Two octaves at this scale and 2x for organic non-uniform waves.
   const wph: number[] = [];
   for (let i = 0; i < 8; i++) wph.push(rng() * Math.PI * 2);
-  const wf = cellDensity * 6.0;
+  const wf = cellDensity * 6;
   function wobbleNoise(uvX: number, uvY: number): number {
     const n =
-      Math.sin(uvX * wf + wph[0]) * Math.cos(uvY * wf + wph[1]) * 1.0 +
-      Math.sin(uvX * wf * 2.0 + wph[2]) *
-        Math.cos(uvY * wf * 2.0 + wph[3]) *
-        0.5;
-    return n * (1.0 / 1.5);
+      Math.sin(uvX * wf + wph[0]) * Math.cos(uvY * wf + wph[1]) * 1 +
+      Math.sin(uvX * wf * 2 + wph[2]) * Math.cos(uvY * wf * 2 + wph[3]) * 0.5;
+    return n * (1 / 1.5);
   }
 
   // Smoothstep helper
@@ -336,12 +330,10 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
       // at peak.  Use heightHere normalized as a height factor.
       const heightNorm = Math.min(1, heightHere * heightStrength * cellDensity);
       // Two-band gradient: low → mid → hi by heightNorm.
-      let rockBase: RGB;
-      if (heightNorm < 0.5) {
-        rockBase = lerp3(ROCK_LO, ROCK_MD, heightNorm * 2);
-      } else {
-        rockBase = lerp3(ROCK_MD, ROCK_HI, (heightNorm - 0.5) * 2);
-      }
+      const rockBase: RGB =
+        heightNorm < 0.5
+          ? lerp3(ROCK_LO, ROCK_MD, heightNorm * 2)
+          : lerp3(ROCK_MD, ROCK_HI, (heightNorm - 0.5) * 2);
       // Apply shading
       const rockR = rockBase[0] * shading;
       const rockG = rockBase[1] * shading;
@@ -350,12 +342,10 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
       // Lava color: hot at the center of channels (where dEdge is closest to
       // 0), cooling toward edges.  Use dEdge / thickness as cooling factor.
       const lavaCool = Math.min(1, dEdge / Math.max(0.001, thickness));
-      let lavaBase: RGB;
-      if (lavaCool < 0.4) {
-        lavaBase = lerp3(LAVA_HOT, LAVA_MID, lavaCool / 0.4);
-      } else {
-        lavaBase = lerp3(LAVA_MID, LAVA_DEEP, (lavaCool - 0.4) / 0.6);
-      }
+      const lavaBase: RGB =
+        lavaCool < 0.4
+          ? lerp3(LAVA_HOT, LAVA_MID, lavaCool / 0.4)
+          : lerp3(LAVA_MID, LAVA_DEEP, (lavaCool - 0.4) / 0.6);
 
       // Mix rock over lava using mask
       const r = lavaBase[0] + (rockR - lavaBase[0]) * mask;
@@ -363,9 +353,9 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
       const b = lavaBase[2] + (rockB - lavaBase[2]) * mask;
 
       const idx = (py * W + px) * 4;
-      data[idx] = Math.max(0, Math.min(255, r | 0));
-      data[idx + 1] = Math.max(0, Math.min(255, g | 0));
-      data[idx + 2] = Math.max(0, Math.min(255, b | 0));
+      data[idx] = Math.max(0, Math.min(255, Math.trunc(r)));
+      data[idx + 1] = Math.max(0, Math.min(255, Math.trunc(g)));
+      data[idx + 2] = Math.max(0, Math.min(255, Math.trunc(b)));
       data[idx + 3] = 255;
     }
   }

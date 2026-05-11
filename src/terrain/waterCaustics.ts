@@ -125,11 +125,11 @@ export function waterCaustics(
     const A1 = amp;
     const A2 = A1 * 0.33;
     const wx =
-      Math.sin(u * 8.0 + v * 6.0 + ph1x) * A1 +
-      Math.sin(u * 21.0 - v * 11.0 + ph2x) * A2;
+      Math.sin(u * 8 + v * 6 + ph1x) * A1 +
+      Math.sin(u * 21 - v * 11 + ph2x) * A2;
     const wy =
-      Math.sin(v * 8.0 + u * 6.0 + ph1y) * A1 +
-      Math.sin(v * 21.0 - u * 11.0 + ph2y) * A2;
+      Math.sin(v * 8 + u * 6 + ph1y) * A1 +
+      Math.sin(v * 21 - u * 11 + ph2y) * A2;
     return [px + wx * W, py + wy * H];
   }
 
@@ -155,7 +155,7 @@ export function waterCaustics(
         for (const [sx, sy] of bucket) {
           const ddx = wux - sx,
             ddy = wuy - sy;
-          const d = Math.sqrt(ddx * ddx + ddy * ddy);
+          const d = Math.hypot(ddx, ddy);
           if (d < d1) d1 = d;
           sumExp += Math.exp(-d / field.smoothness);
         }
@@ -165,7 +165,7 @@ export function waterCaustics(
       for (const [sx, sy] of field.seeds) {
         const ddx = wux - sx,
           ddy = wuy - sy;
-        const d = Math.sqrt(ddx * ddx + ddy * ddy);
+        const d = Math.hypot(ddx, ddy);
         if (d < d1) d1 = d;
         sumExp += Math.exp(-d / field.smoothness);
       }
@@ -204,9 +204,9 @@ export function waterCaustics(
       b = b + (fieldWhite.color[2] - b) * mWhite;
 
       const idx = (py * W + px) * 4;
-      data[idx] = r | 0;
-      data[idx + 1] = g | 0;
-      data[idx + 2] = b | 0;
+      data[idx] = Math.trunc(r);
+      data[idx + 1] = Math.trunc(g);
+      data[idx + 2] = Math.trunc(b);
       data[idx + 3] = 255;
     }
   }

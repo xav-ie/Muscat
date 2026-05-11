@@ -30,8 +30,8 @@ export function makeInsetShadowFilter(
   const blurNode = document.createElementNS(SVG_NS, "feGaussianBlur");
   blurNode.setAttribute("in", "SourceGraphic");
   blurNode.setAttribute("stdDeviation", String(blur));
-  f.appendChild(blurNode);
-  defsParent.appendChild(f);
+  f.append(blurNode);
+  defsParent.append(f);
   return id;
 }
 
@@ -66,8 +66,8 @@ export function applyInsetShadow(
   clip.setAttribute("id", clipId);
   const clipPath = document.createElementNS(SVG_NS, "path");
   clipPath.setAttribute("d", shapePath);
-  clip.appendChild(clipPath);
-  defsParent.appendChild(clip);
+  clip.append(clipPath);
+  defsParent.append(clip);
 
   // Filter group — blur applied to the stroke
   const filterId = makeInsetShadowFilter(defsParent, "insetshadow", blur);
@@ -84,7 +84,7 @@ export function applyInsetShadow(
   stroke.setAttribute("stroke", color);
   stroke.setAttribute("stroke-width", String(thickness));
   stroke.setAttribute("stroke-linejoin", "round");
-  g.appendChild(stroke);
-  parent.appendChild(g);
+  g.append(stroke);
+  parent.append(g);
   return g;
 }

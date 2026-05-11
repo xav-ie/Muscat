@@ -13,21 +13,35 @@ export function decorateBanner(
   w: number,
   h: number,
 ): void {
-  if (s === 0) {
-    // Lava — Voronoi rocks with glowing magma cracks between them.
-    magmaRocks(x, y, w, h);
-  } else if (s === 1) {
-    // Sand — cracked desert: Voronoi cells in mottled sand colors,
-    // separated by thin dark dried-mud cracks.
-    crackedDesert(x, y, w, h);
-  } else if (s === 2) {
-    // Sea — water caustics: two layers of sharp-minus-smooth Voronoi
-    // distance fields.  Dark blue underlay (slider-controlled) + bright
-    // white tight ridges (baked) on top.
-    waterCaustics(x, y, w, h);
-  } else if (s === 3) {
-    // Grass row: mounds, scattered tufts, flowers
-    grassScene(x, y, w, h);
+  switch (s) {
+    case 0: {
+      // Lava — Voronoi rocks with glowing magma cracks between them.
+      magmaRocks(x, y, w, h);
+
+      break;
+    }
+    case 1: {
+      // Sand — cracked desert: Voronoi cells in mottled sand colors,
+      // separated by thin dark dried-mud cracks.
+      crackedDesert(x, y, w, h);
+
+      break;
+    }
+    case 2: {
+      // Sea — water caustics: two layers of sharp-minus-smooth Voronoi
+      // distance fields.  Dark blue underlay (slider-controlled) + bright
+      // white tight ridges (baked) on top.
+      waterCaustics(x, y, w, h);
+
+      break;
+    }
+    case 3: {
+      // Grass row: mounds, scattered tufts, flowers
+      grassScene(x, y, w, h);
+
+      break;
+    }
+    // No default
   }
 }
 
@@ -43,7 +57,7 @@ export function terrainBanner(
   strokeColor: string,
 ): void {
   // Crisp fill underlay so color stays uniform under any displacement
-  layers.shapes!.appendChild(svgRect(x, y, w, h, fillColor, 2.5));
+  layers.shapes!.append(svgRect(x, y, w, h, fillColor, 2.5));
 
   // Set up a clipPath matching the banner's rounded-rect shape so any
   // decoration that draws beyond the banner (e.g. sand Voronoi cells that
@@ -53,8 +67,8 @@ export function terrainBanner(
   cp.setAttribute("id", clipId);
   const cpPath = document.createElementNS(SVG_NS, "path");
   cpPath.setAttribute("d", roundedRectPath(x, y, w, h, 2.5));
-  cp.appendChild(cpPath);
-  board.querySelector("defs")!.appendChild(cp);
+  cp.append(cpPath);
+  board.querySelector("defs")!.append(cp);
 
   // Decorations live inside a clipped group so they can't escape the
   // banner shape.  Append our clipped group to the current shapesLayer
@@ -64,7 +78,7 @@ export function terrainBanner(
   const clipped = document.createElementNS(SVG_NS, "g");
   clipped.setAttribute("clip-path", `url(#${clipId})`);
   const saved = layers.shapes;
-  saved!.appendChild(clipped);
+  saved!.append(clipped);
   layers.shapes = clipped;
   try {
     decorateBanner(s, x, y, w, h);
@@ -73,7 +87,7 @@ export function terrainBanner(
   }
 
   // Outline on top (outside the clip so the stroke's outer half stays visible)
-  layers.shapes!.appendChild(
+  layers.shapes!.append(
     svgPath(roundedRectPath(x, y, w, h, 2.5), {
       fill: "none",
       stroke: strokeColor,

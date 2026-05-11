@@ -38,10 +38,10 @@ export function square(
   } = {},
 ): void {
   if (fill && fill !== "none") {
-    layers.shapes!.appendChild(svgRect(x, y, size, size, fill, radius));
+    layers.shapes!.append(svgRect(x, y, size, size, fill, radius));
   }
   if (stroke && stroke !== "none") {
-    layers.shapes!.appendChild(
+    layers.shapes!.append(
       svgPath(roundedRectPath(x, y, size, size, radius), {
         fill: "none",
         stroke,
@@ -78,11 +78,11 @@ export function getTintFilterId(color: string): string {
   composite.setAttribute("in", "flood");
   composite.setAttribute("in2", "SourceGraphic");
   composite.setAttribute("operator", "in");
-  filter.appendChild(flood);
-  filter.appendChild(composite);
+  filter.append(flood);
+  filter.append(composite);
   // Find the SVG's defs (top-level) — assumed to exist by render time
   const defs = board.querySelector("defs")!;
-  defs.appendChild(filter);
+  defs.append(filter);
   __tintRegistry.set(color, id);
   return id;
 }
@@ -121,7 +121,7 @@ export function iconSquare(
 
   // Crisp filled underlay (uniform color regardless of grain displacement)
   if (theme.squareFill && theme.squareFill !== "none") {
-    layers.shapes!.appendChild(
+    layers.shapes!.append(
       svgPath(path, {
         fill: theme.squareFill,
         stroke: "none",
@@ -139,7 +139,7 @@ export function iconSquare(
     // edge doesn't spike out as a miter point under stroke-linejoin='miter'.
     outlinePath.setAttribute("stroke-linejoin", "round");
     outlinePath.setAttribute("stroke-linecap", "round");
-    layers.shapes!.appendChild(outlinePath);
+    layers.shapes!.append(outlinePath);
   }
 
   // Icon image, padded inside the square
@@ -148,5 +148,5 @@ export function iconSquare(
   const dataUrl = `data:image/svg+xml;base64,${ICONS[iconKey]}`;
   const img = svgImage(dataUrl, x + pad, y + pad, iconSize, iconSize);
   img.setAttribute("filter", `url(#${getTintFilterId(theme.iconColor)})`);
-  layers.shapes!.appendChild(img);
+  layers.shapes!.append(img);
 }

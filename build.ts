@@ -1,13 +1,13 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 
-const ROOT = dirname(fileURLToPath(import.meta.url));
-const ASSETS = resolve(ROOT, "assets");
-const TEMPLATE = resolve(ROOT, "board.template.html");
-const ENTRY = resolve(ROOT, "src", "main.ts");
-const OUT = resolve(ROOT, "dist", "board.html");
+const ROOT = path.dirname(fileURLToPath(import.meta.url));
+const ASSETS = path.resolve(ROOT, "assets");
+const TEMPLATE = path.resolve(ROOT, "board.template.html");
+const ENTRY = path.resolve(ROOT, "src", "main.ts");
+const OUT = path.resolve(ROOT, "dist", "board.html");
 
 const ICON_FILES: Record<string, string> = {
   jester: "jesterhat.svg",
@@ -21,10 +21,10 @@ const b64 = (path: string) => readFileSync(path).toString("base64");
 const icons = Object.fromEntries(
   Object.entries(ICON_FILES).map(([name, file]) => [
     name,
-    b64(resolve(ASSETS, file)),
+    b64(path.resolve(ASSETS, file)),
   ]),
 );
-const krankyB64 = b64(resolve(ASSETS, "kranky-latin-400-normal.woff2"));
+const krankyB64 = b64(path.resolve(ASSETS, "kranky-latin-400-normal.woff2"));
 
 const result = await build({
   entryPoints: [ENTRY],
@@ -44,7 +44,7 @@ const html = readFileSync(TEMPLATE, "utf8")
   .replaceAll("__KRANKY_B64__", krankyB64)
   .replace("__SCRIPT__", script);
 
-mkdirSync(dirname(OUT), { recursive: true });
+mkdirSync(path.dirname(OUT), { recursive: true });
 writeFileSync(OUT, html);
 console.log(
   `wrote ${OUT} (${html.length.toLocaleString()} chars, script ${script.length.toLocaleString()})`,

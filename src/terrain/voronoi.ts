@@ -3,7 +3,10 @@ import { poissonDisk } from "../util/poisson.js";
 
 export type Point = [number, number];
 export type Polygon = Point[];
-export interface VoronoiCell { seed: Point; poly: Polygon }
+export interface VoronoiCell {
+  seed: Point;
+  poly: Polygon;
+}
 
 export interface VoronoiToolkit {
   cells: VoronoiCell[];
@@ -104,7 +107,7 @@ export function voronoiCellsWithWavyEdges(
     const out: VoronoiCell[] = [];
     for (let i = 0; i < currentSeeds.length; i++) {
       const [sx, sy] = currentSeeds[i];
-      let cell: Polygon = rect.slice();
+      let cell: Polygon = [...rect];
       for (let j = 0; j < currentSeeds.length; j++) {
         if (i === j) continue;
         const [tx, ty] = currentSeeds[j];
@@ -267,7 +270,7 @@ export function voronoiCellsWithWavyEdges(
 
   function wavyEdgePoints(a: Point, b: Point): Polygon {
     const mids = getEdgeNoise(a, b);
-    const ordered = isCanonicalForward(a, b) ? mids : mids.slice().reverse();
+    const ordered = isCanonicalForward(a, b) ? mids : mids.toReversed();
     return [a, ...ordered, b];
   }
 

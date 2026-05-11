@@ -3,7 +3,12 @@ import { random as rng } from "../util/rng.js";
 import { voronoiCellsWithWavyEdges } from "./voronoi.js";
 import type { Point } from "./voronoi.js";
 
-interface CrackSeg { x1: number; y1: number; x2: number; y2: number }
+interface CrackSeg {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
 interface Spine {
   pts: Point[];
   len: number;
@@ -34,8 +39,8 @@ export function crackedDesert(
   const count = 45;
   const noiseAmp = 0.115; // cell-edge wobble
   const crackWidth = LINE_W * 2.05;
-  const innerWidth = LINE_W * 2.0;
-  const crackProb = 1.0;
+  const innerWidth = LINE_W * 2;
+  const crackProb = 1;
   const innerSegs = 3;
   const innerJog = 0.2;
   const v = voronoiCellsWithWavyEdges(x, y, w, h, count, 3, noiseAmp);
@@ -55,9 +60,9 @@ export function crackedDesert(
       "fill",
       sandPalette[Math.floor(rng() * sandPalette.length)],
     );
-    cellGroup.appendChild(path);
+    cellGroup.append(path);
   }
-  layers.shapes!.appendChild(cellGroup);
+  layers.shapes!.append(cellGroup);
 
   // ── Cell-boundary cracks ─────────────────────────────────────────
   // Thin dark fissures along each cell edge.  Straight segments + miter
@@ -86,7 +91,7 @@ export function crackedDesert(
   crack.setAttribute("stroke-miterlimit", "4");
   crack.setAttribute("fill", "none");
   crack.setAttribute("opacity", "1");
-  layers.shapes!.appendChild(crack);
+  layers.shapes!.append(crack);
 
   // ── Intra-cell cracks ────────────────────────────────────────────
   // Each crack is drawn as a FILLED TAPERED RIBBON — a polygon that's
@@ -324,12 +329,12 @@ export function crackedDesert(
     // Wisp-sized branches (below MIN_BRANCH_W) are skipped entirely.
     if (depth > 3 || length < 0.5 || baseW < MIN_BRANCH_W) return;
     if (
-      !isFinite(baseX) ||
-      !isFinite(baseY) ||
-      !isFinite(dirX) ||
-      !isFinite(dirY) ||
-      !isFinite(length) ||
-      !isFinite(baseW)
+      !Number.isFinite(baseX) ||
+      !Number.isFinite(baseY) ||
+      !Number.isFinite(dirX) ||
+      !Number.isFinite(dirY) ||
+      !Number.isFinite(length) ||
+      !Number.isFinite(baseW)
     )
       return;
 
@@ -346,7 +351,7 @@ export function crackedDesert(
     const branchStartIdx = recordPolyline(s.pts, pool);
 
     // Render: pts[0] is the BASE so reverse for ribbonPath (tip-first)
-    const reversed = s.pts.slice().reverse();
+    const reversed = s.pts.toReversed();
     innerD += ribbonPath(reversed, baseW, 0);
 
     // ── Sub-branch decisions ─────────────────────────────────────
@@ -551,5 +556,5 @@ export function crackedDesert(
   innerCrack.setAttribute("stroke", "none");
   innerCrack.setAttribute("fill-rule", "nonzero");
   innerCrack.setAttribute("opacity", "1");
-  layers.shapes!.appendChild(innerCrack);
+  layers.shapes!.append(innerCrack);
 }

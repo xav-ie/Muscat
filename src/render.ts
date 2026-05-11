@@ -116,28 +116,28 @@ export function render(): void {
     off.setAttribute("dx", "0.4");
     off.setAttribute("dy", "0.8");
     off.setAttribute("result", "offA");
-    f.appendChild(off);
+    f.append(off);
     const blur = document.createElementNS(SVG_NS, "feGaussianBlur");
     blur.setAttribute("in", "offA");
     blur.setAttribute("stdDeviation", "0.6");
     blur.setAttribute("result", "blurA");
-    f.appendChild(blur);
+    f.append(blur);
     const ct = document.createElementNS(SVG_NS, "feComponentTransfer");
     ct.setAttribute("in", "blurA");
     const fa = document.createElementNS(SVG_NS, "feFuncA");
     fa.setAttribute("type", "linear");
     fa.setAttribute("slope", "0.45");
-    ct.appendChild(fa);
+    ct.append(fa);
     ct.setAttribute("result", "sh");
-    f.appendChild(ct);
+    f.append(ct);
     const merge = document.createElementNS(SVG_NS, "feMerge");
     for (const src of ["sh", "SourceGraphic"]) {
       const n = document.createElementNS(SVG_NS, "feMergeNode");
       n.setAttribute("in", src);
-      merge.appendChild(n);
+      merge.append(n);
     }
-    f.appendChild(merge);
-    board.querySelector("defs")!.appendChild(f);
+    f.append(merge);
+    board.querySelector("defs")!.append(f);
   }
   // Banner fill + WHITE border
   const bannerEl = svgPath(bannerPath, {
@@ -146,7 +146,7 @@ export function render(): void {
     strokeWidth: LINE_W * 1.5,
   });
   bannerEl.setAttribute("filter", `url(#${titleShadowId})`);
-  layers.shapes!.appendChild(bannerEl);
+  layers.shapes!.append(bannerEl);
   // Title text — Kranky, sized to fit the banner height, centered horizontally
   // within the rectangular body (not extending into the tails).  White text
   // with a subtle dark-purple stroke outline for readability.
@@ -210,14 +210,7 @@ export function render(): void {
     const quadMidY = sy + quadH / 2;
     const bannerMidY = bannerY + bannerH / 2;
     edgeNumber(leftNumX, quadMidY, quadletNums[s], "#111", numFontSize, "end");
-    edgeNumber(
-      rightNumX,
-      quadMidY,
-      quadletNums[s],
-      "#111",
-      numFontSize,
-      "end",
-    );
+    edgeNumber(rightNumX, quadMidY, quadletNums[s], "#111", numFontSize, "end");
     edgeNumber(
       leftNumX,
       bannerMidY,

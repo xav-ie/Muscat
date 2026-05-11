@@ -4,8 +4,15 @@ import { jitterColor, mixColors } from "../util/color.js";
 import { svgPath, svgRect } from "../svg/primitives.js";
 
 type Point = [number, number];
-interface Hill { pts: Point[]; d: string; color: string }
-interface FlowerHue { petal: string; center: string }
+interface Hill {
+  pts: Point[];
+  d: string;
+  color: string;
+}
+interface FlowerHue {
+  petal: string;
+  center: string;
+}
 type CrestFn = (px: number) => number;
 
 // One flower: a small dot with a few petals around it.  Rendered as a single
@@ -23,7 +30,7 @@ export function flower(cx: number, cy: number, color: string): void {
     c.setAttribute("cy", String(py));
     c.setAttribute("r", String(petalR));
     c.setAttribute("fill", color);
-    layers.shapes!.appendChild(c);
+    layers.shapes!.append(c);
   }
   // Yellow center dot
   const center = document.createElementNS(SVG_NS, "circle");
@@ -31,7 +38,7 @@ export function flower(cx: number, cy: number, color: string): void {
   center.setAttribute("cy", String(cy));
   center.setAttribute("r", String(petalR * 0.85));
   center.setAttribute("fill", "#f4d65a");
-  layers.shapes!.appendChild(center);
+  layers.shapes!.append(center);
 }
 
 // Composite grass scene: a few mounds with tufts cresting them, scattered
@@ -89,7 +96,7 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
   }
 
   function drawHill(hill: Hill): void {
-    layers.shapes!.appendChild(svgPath(hill.d, { fill: hill.color }));
+    layers.shapes!.append(svgPath(hill.d, { fill: hill.color }));
   }
 
   // Sample y at any x along a hill's polyline.
@@ -162,14 +169,14 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
   // leaves now sit on a flat backdrop rectangle at the absolute back).
   const backHill = buildHill(0.4, 0.18, 0.6, 1.2, 3.1, HILL_BACK);
   const midHill = buildHill(0.55, 0.22, 2.1, 1.6, 4.3, HILL_MID);
-  const frontHill = buildHill(0.72, 0.2, 0.0, 1.8, 5.7, HILL_FRONT);
+  const frontHill = buildHill(0.72, 0.2, 0, 1.8, 5.7, HILL_FRONT);
 
   // ── DRAW BACK-TO-FRONT, INTERLEAVED ──────────────────────────────
   //
   // Layer 0 (VERY BACK): flat dark-green rectangle filling the entire
   // banner, then dense dark leaves on top of it.  The rectangle covers
   // edge-to-edge so no banner fill shows above the leaves.
-  layers.shapes!.appendChild(svgRect(x, y, w, h, BACKDROP));
+  layers.shapes!.append(svgRect(x, y, w, h, BACKDROP));
   plantLeavesInBand(y, crestYFn(backHill.pts), "#1f3e10", "#2e5818", 6500);
 
   // Layer 1: back hill with DENSE grass blades.  Each blade randomly
@@ -197,7 +204,7 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
     );
     const [gx, gy] = frontHill.pts[sampleIdx];
     if (gx < x + margin + 3 || gx > x + w - margin - 3) continue;
-    const stemH = 2.5 + rng() * 2.0;
+    const stemH = 2.5 + rng() * 2;
     const headX = gx + (rng() - 0.5) * 0.6;
     const headY = gy - stemH;
     const hue = flowerHues[Math.floor(rng() * flowerHues.length)];
@@ -246,7 +253,7 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
       el.setAttribute("ry", String(ry));
       el.setAttribute("transform", `rotate(${angle} ${lx} ${ly})`);
       el.setAttribute("fill", color);
-      layers.shapes!.appendChild(el);
+      layers.shapes!.append(el);
     }
   }
 }
@@ -261,7 +268,7 @@ export function grassTuftOnGround(
   gy: number,
   darkColor: string,
   lightColor: string,
-  scale = 1.0,
+  scale = 1,
 ): void {
   const n = 3 + Math.floor(rng() * 3); // 3-5 blades
   const baseSpread = 1.4 * scale;
@@ -269,7 +276,7 @@ export function grassTuftOnGround(
     const t = (i - (n - 1) / 2) / Math.max(1, n - 1);
     const bx = gx + t * baseSpread;
     const by = gy + 0.3 * scale;
-    const heightBase = (3.0 + rng() * 2.0) * scale;
+    const heightBase = (3 + rng() * 2) * scale;
     const heightCurve = 1 - Math.abs(t) * 0.3;
     const height = heightBase * heightCurve;
     const leanAmount = t * (0.9 + rng() * 0.7) + (rng() - 0.5) * 0.4;
@@ -290,9 +297,7 @@ export function grassTuftOnGround(
     // shadowed, some are sun-hit), then add small jitter.
     const mixT = Math.pow(rng(), 1.6); // skew toward 0 (dark)
     const baseColor = mixColors(darkColor, lightColor, mixT);
-    layers.shapes!.appendChild(
-      svgPath(d, { fill: jitterColor(baseColor, 0.6) }),
-    );
+    layers.shapes!.append(svgPath(d, { fill: jitterColor(baseColor, 0.6) }));
   }
 }
 
@@ -310,7 +315,7 @@ export function drawFlower(
   const stemCtrlX = (gx + headX) / 2 + (rng() - 0.5) * 0.5;
   const stemCtrlY = (gy + headY) / 2;
   const stemD = `M ${gx} ${gy} Q ${stemCtrlX} ${stemCtrlY} ${headX} ${headY}`;
-  layers.shapes!.appendChild(
+  layers.shapes!.append(
     svgPath(stemD, {
       fill: "none",
       stroke: "#2a5e1a",
@@ -335,7 +340,7 @@ export function drawFlower(
     const deg = (a * 180) / Math.PI + 90;
     ellipse.setAttribute("transform", `rotate(${deg} ${px} ${py})`);
     ellipse.setAttribute("fill", hue.petal);
-    layers.shapes!.appendChild(ellipse);
+    layers.shapes!.append(ellipse);
   }
   // 3. Center disc
   const c = document.createElementNS(SVG_NS, "circle");
@@ -343,5 +348,5 @@ export function drawFlower(
   c.setAttribute("cy", String(headY));
   c.setAttribute("r", String(0.75));
   c.setAttribute("fill", hue.center);
-  layers.shapes!.appendChild(c);
+  layers.shapes!.append(c);
 }
