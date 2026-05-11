@@ -12,11 +12,12 @@
     "check:lint": "eslint .",
     "check:knip": "knip",
     "check:fallow": "fallow audit",
-    "check:types": "tsc --noEmit"
+    "check:types": "tsgo --noEmit"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.9.0",
+    "@typescript/native-preview": "^7.0.0-dev.20260511.1",
     "concurrently": "^9.2.1",
     "esbuild": "^0.28.0",
     "eslint": "^10.3.0",
