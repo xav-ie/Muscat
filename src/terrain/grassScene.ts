@@ -1,12 +1,16 @@
-// @ts-nocheck
 import { SVG_NS, LINE_W, layers } from "../state.js";
 import { random as rng } from "../util/rng.js";
 import { jitterColor, mixColors } from "../util/color.js";
 import { svgPath, svgRect } from "../svg/primitives.js";
 
+type Point = [number, number];
+type Hill = { pts: Point[]; d: string; color: string };
+type FlowerHue = { petal: string; center: string };
+type CrestFn = (px: number) => number;
+
 // One flower: a small dot with a few petals around it.  Rendered as a single
 // filled circle (the bloom) with `petals` smaller circles around it.
-export function flower(cx, cy, color) {
+export function flower(cx: number, cy: number, color: string): void {
   const petalR = 0.55;
   const ringR = 1.1;
   // 5 petal circles around a center
@@ -15,24 +19,24 @@ export function flower(cx, cy, color) {
     const px = cx + Math.cos(a) * ringR;
     const py = cy + Math.sin(a) * ringR;
     const c = document.createElementNS(SVG_NS, "circle");
-    c.setAttribute("cx", px);
-    c.setAttribute("cy", py);
-    c.setAttribute("r", petalR);
+    c.setAttribute("cx", String(px));
+    c.setAttribute("cy", String(py));
+    c.setAttribute("r", String(petalR));
     c.setAttribute("fill", color);
-    layers.shapes.appendChild(c);
+    layers.shapes!.appendChild(c);
   }
   // Yellow center dot
   const center = document.createElementNS(SVG_NS, "circle");
-  center.setAttribute("cx", cx);
-  center.setAttribute("cy", cy);
-  center.setAttribute("r", petalR * 0.85);
+  center.setAttribute("cx", String(cx));
+  center.setAttribute("cy", String(cy));
+  center.setAttribute("r", String(petalR * 0.85));
   center.setAttribute("fill", "#f4d65a");
-  layers.shapes.appendChild(center);
+  layers.shapes!.appendChild(center);
 }
 
 // Composite grass scene: a few mounds with tufts cresting them, scattered
 // flowers, and individual blades around.
-export function grassScene(x, y, w, h) {
+export function grassScene(x: number, y: number, w: number, h: number): void {
   // Palette: hills go DARK in the back to LIGHT in the front.
   // Hill fill colors are now close to their blade colors so where
   // blades don't fully cover, the underlying ground harmonizes
@@ -47,7 +51,7 @@ export function grassScene(x, y, w, h) {
   // scene, covered by leaves to suggest a deep forest beyond.
   const BACKDROP = "#143008";
 
-  const flowerHues = [
+  const flowerHues: FlowerHue[] = [
     { petal: "#e94f8a", center: "#f4d65a" }, // pink / yellow
     { petal: "#f0f0f0", center: "#f4d65a" }, // white daisy
     { petal: "#f4d65a", center: "#c08a1a" }, // yellow
@@ -57,11 +61,18 @@ export function grassScene(x, y, w, h) {
 
   // Build a hill's filled polygon AND return its sampled crest points.
   // Doesn't append to shapesLayer yet — caller decides when to draw.
-  function buildHill(crestFrac, ampFrac, phase, freqA, freqB, color) {
+  function buildHill(
+    crestFrac: number,
+    ampFrac: number,
+    phase: number,
+    freqA: number,
+    freqB: number,
+    color: string,
+  ): Hill {
     const samples = 80;
     const crestY = y + h * crestFrac;
     const amp = h * ampFrac;
-    const pts = [];
+    const pts: Point[] = [];
     for (let i = 0; i <= samples; i++) {
       const t = i / samples;
       const px = x + t * w;
@@ -71,39 +82,35 @@ export function grassScene(x, y, w, h) {
       const py = crestY - amp * noise;
       pts.push([px, py]);
     }
-    let d = `M ${x} ${y + h} L ${pts[0][0]} ${pts[0][1]} `;
-    for (let i = 1; i < pts.length; i++) d += `L ${pts[i][0]} ${pts[i][1]} `;
+    let d = `M ${x} ${y + h} L ${pts[0]![0]} ${pts[0]![1]} `;
+    for (let i = 1; i < pts.length; i++) d += `L ${pts[i]![0]} ${pts[i]![1]} `;
     d += `L ${x + w} ${y + h} Z`;
     return { pts, d, color };
   }
 
-  function drawHill(hill) {
-    layers.shapes.appendChild(svgPath(hill.d, { fill: hill.color }));
+  function drawHill(hill: Hill): void {
+    layers.shapes!.appendChild(svgPath(hill.d, { fill: hill.color }));
   }
 
   // Sample y at any x along a hill's polyline.
-  function crestYAt(crest, px) {
+  function crestYAt(crest: Point[], px: number): number {
     let lo = 0,
       hi = crest.length - 1;
     while (lo < hi - 1) {
       const mid = (lo + hi) >> 1;
-      if (crest[mid][0] <= px) lo = mid;
+      if (crest[mid]![0] <= px) lo = mid;
       else hi = mid;
     }
-    const span = Math.max(1e-6, crest[hi][0] - crest[lo][0]);
-    const t = (px - crest[lo][0]) / span;
-    return crest[lo][1] + (crest[hi][1] - crest[lo][1]) * t;
+    const span = Math.max(1e-6, crest[hi]![0] - crest[lo]![0]);
+    const t = (px - crest[lo]![0]) / span;
+    return crest[lo]![1] + (crest[hi]![1] - crest[lo]![1]) * t;
   }
 
   // Return a function that takes x and returns y on this crest.
   // Useful when the "top" of a band is just the banner top (a constant
   // y), so we don't need a hill polygon to provide the lookup.
-  function crestYFn(crest) {
-    return (px) => crestYAt(crest, px);
-  }
-  // Constant-y "crest" — used for the flat banner top edge.
-  function constYFn(yConst) {
-    return () => yConst;
+  function crestYFn(crest: Point[]): CrestFn {
+    return (px: number) => crestYAt(crest, px);
   }
 
   // Plant tufts across a hill's visible band.  Top edge is this hill's
@@ -118,19 +125,19 @@ export function grassScene(x, y, w, h) {
   // blades cleanly instead of revealing a visible "base line" at the
   // banner border.
   function plantTufts(
-    thisCrest,
-    nextCrest,
-    count,
-    darkColor,
-    lightColor,
-    minScale,
-    maxScale,
-  ) {
+    thisCrest: Point[],
+    nextCrest: Point[] | null,
+    count: number,
+    darkColor: string,
+    lightColor: string,
+    minScale: number,
+    maxScale: number,
+  ): void {
     const edgeBleed = 4;
     const xMin = x - edgeBleed,
       xMax = x + w + edgeBleed;
     // Step 1: generate ALL tuft positions first, collecting (bx, by, scale)
-    const tufts = [];
+    const tufts: { bx: number; by: number; scale: number }[] = [];
     for (let i = 0; i < count; i++) {
       const bx = xMin + rng() * (xMax - xMin);
       const xClamp = Math.max(x, Math.min(x + w, bx));
@@ -162,7 +169,7 @@ export function grassScene(x, y, w, h) {
   // Layer 0 (VERY BACK): flat dark-green rectangle filling the entire
   // banner, then dense dark leaves on top of it.  The rectangle covers
   // edge-to-edge so no banner fill shows above the leaves.
-  layers.shapes.appendChild(svgRect(x, y, w, h, BACKDROP));
+  layers.shapes!.appendChild(svgRect(x, y, w, h, BACKDROP));
   plantLeavesInBand(y, crestYFn(backHill.pts), "#1f3e10", "#2e5818", 6500);
 
   // Layer 1: back hill with DENSE grass blades.  Each blade randomly
@@ -188,12 +195,12 @@ export function grassScene(x, y, w, h) {
       frontHill.pts.length - 1,
       Math.max(0, Math.floor(t * frontHill.pts.length)),
     );
-    const [gx, gy] = frontHill.pts[sampleIdx];
+    const [gx, gy] = frontHill.pts[sampleIdx]!;
     if (gx < x + margin + 3 || gx > x + w - margin - 3) continue;
     const stemH = 2.5 + rng() * 2.0;
     const headX = gx + (rng() - 0.5) * 0.6;
     const headY = gy - stemH;
-    const hue = flowerHues[Math.floor(rng() * flowerHues.length)];
+    const hue = flowerHues[Math.floor(rng() * flowerHues.length)]!;
     drawFlower(gx, gy, headX, headY, hue);
   }
 
@@ -204,17 +211,19 @@ export function grassScene(x, y, w, h) {
   // Plant leaves filling the band between topYFn(x) and botYFn(x).
   // Either argument can be a number (constant y) or a function (x → y).
   function plantLeavesInBand(
-    topYArg,
-    botYArg,
-    darkColor,
-    lightColor,
-    leafCount,
-  ) {
+    topYArg: number | CrestFn,
+    botYArg: number | CrestFn,
+    darkColor: string,
+    lightColor: string,
+    leafCount: number,
+  ): void {
     const edgeBleed = 4;
     const xMin = x - edgeBleed,
       xMax = x + w + edgeBleed;
-    const topYFn = typeof topYArg === "function" ? topYArg : () => topYArg;
-    const botYFn = typeof botYArg === "function" ? botYArg : () => botYArg;
+    const topYFn: CrestFn =
+      typeof topYArg === "function" ? topYArg : () => topYArg;
+    const botYFn: CrestFn =
+      typeof botYArg === "function" ? botYArg : () => botYArg;
     for (let i = 0; i < leafCount; i++) {
       const lx = xMin + rng() * (xMax - xMin);
       const xClamp = Math.max(x, Math.min(x + w, lx));
@@ -231,13 +240,13 @@ export function grassScene(x, y, w, h) {
       const color = jitterColor(base, 1.2);
 
       const el = document.createElementNS(SVG_NS, "ellipse");
-      el.setAttribute("cx", lx);
-      el.setAttribute("cy", ly);
-      el.setAttribute("rx", rx);
-      el.setAttribute("ry", ry);
+      el.setAttribute("cx", String(lx));
+      el.setAttribute("cy", String(ly));
+      el.setAttribute("rx", String(rx));
+      el.setAttribute("ry", String(ry));
       el.setAttribute("transform", `rotate(${angle} ${lx} ${ly})`);
       el.setAttribute("fill", color);
-      layers.shapes.appendChild(el);
+      layers.shapes!.appendChild(el);
     }
   }
 }
@@ -247,7 +256,13 @@ export function grassScene(x, y, w, h) {
 // (most common — typical blade tone) to `lightColor` (the hill's base
 // color, less common — reads as sun-hit highlight or underlying ground
 // peeking through).  Plus a tiny per-blade jitter on top.
-export function grassTuftOnGround(gx, gy, darkColor, lightColor, scale = 1.0) {
+export function grassTuftOnGround(
+  gx: number,
+  gy: number,
+  darkColor: string,
+  lightColor: string,
+  scale = 1.0,
+): void {
   const n = 3 + Math.floor(rng() * 3); // 3-5 blades
   const baseSpread = 1.4 * scale;
   for (let i = 0; i < n; i++) {
@@ -275,7 +290,7 @@ export function grassTuftOnGround(gx, gy, darkColor, lightColor, scale = 1.0) {
     // shadowed, some are sun-hit), then add small jitter.
     const mixT = Math.pow(rng(), 1.6); // skew toward 0 (dark)
     const baseColor = mixColors(darkColor, lightColor, mixT);
-    layers.shapes.appendChild(
+    layers.shapes!.appendChild(
       svgPath(d, { fill: jitterColor(baseColor, 0.6) }),
     );
   }
@@ -284,12 +299,18 @@ export function grassTuftOnGround(gx, gy, darkColor, lightColor, scale = 1.0) {
 // Draw a flower: stem from (gx,gy) to (headX,headY), then a multi-petal
 // bloom at the head.  Petals are short ellipses arranged in a ring with
 // a center disc.
-export function drawFlower(gx, gy, headX, headY, hue) {
+export function drawFlower(
+  gx: number,
+  gy: number,
+  headX: number,
+  headY: number,
+  hue: FlowerHue,
+): void {
   // 1. Stem — single quadratic curve so it leans slightly
   const stemCtrlX = (gx + headX) / 2 + (rng() - 0.5) * 0.5;
   const stemCtrlY = (gy + headY) / 2;
   const stemD = `M ${gx} ${gy} Q ${stemCtrlX} ${stemCtrlY} ${headX} ${headY}`;
-  layers.shapes.appendChild(
+  layers.shapes!.appendChild(
     svgPath(stemD, {
       fill: "none",
       stroke: "#2a5e1a",
@@ -306,21 +327,21 @@ export function drawFlower(gx, gy, headX, headY, hue) {
     const px = headX + Math.cos(a) * ringR;
     const py = headY + Math.sin(a) * ringR;
     const ellipse = document.createElementNS(SVG_NS, "ellipse");
-    ellipse.setAttribute("cx", px);
-    ellipse.setAttribute("cy", py);
-    ellipse.setAttribute("rx", petalRx);
-    ellipse.setAttribute("ry", petalRy);
+    ellipse.setAttribute("cx", String(px));
+    ellipse.setAttribute("cy", String(py));
+    ellipse.setAttribute("rx", String(petalRx));
+    ellipse.setAttribute("ry", String(petalRy));
     // Rotate the petal so its long axis points outward from the center
     const deg = (a * 180) / Math.PI + 90;
     ellipse.setAttribute("transform", `rotate(${deg} ${px} ${py})`);
     ellipse.setAttribute("fill", hue.petal);
-    layers.shapes.appendChild(ellipse);
+    layers.shapes!.appendChild(ellipse);
   }
   // 3. Center disc
   const c = document.createElementNS(SVG_NS, "circle");
-  c.setAttribute("cx", headX);
-  c.setAttribute("cy", headY);
-  c.setAttribute("r", 0.75);
+  c.setAttribute("cx", String(headX));
+  c.setAttribute("cy", String(headY));
+  c.setAttribute("r", String(0.75));
   c.setAttribute("fill", hue.center);
-  layers.shapes.appendChild(c);
+  layers.shapes!.appendChild(c);
 }

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { LINE_W, layers } from "../state.js";
 import { random as rng } from "../util/rng.js";
 import { svgPath } from "../svg/primitives.js";
@@ -7,7 +6,7 @@ import { wave } from "./scatter.js";
 // Composite river scene: SAND zone above, MUD zone below, with a meandering
 // blue river band running horizontally across the middle.  The river's edges
 // undulate; flow lines inside suggest current.
-export function riverScene(x, y, w, h) {
+export function riverScene(x: number, y: number, w: number, h: number): void {
   const SAND = "#e8c773";
   const MUD = "#6b4d2e";
   const RIVER_BLUE = "#3a91c2";
@@ -18,7 +17,7 @@ export function riverScene(x, y, w, h) {
   // a small higher-frequency wiggle adds character without breaking flow.
   const riverMidY = y + h * 0.5;
   const riverHalfBase = h * 0.3; // half-thickness at midline
-  function riverEdgeY(side, px) {
+  function riverEdgeY(side: -1 | 1, px: number): number {
     // side: -1 = top edge, +1 = bottom edge.  Both edges undulate together
     // following the same big S-curve so the river itself meanders, with a
     // smaller independent wobble on each edge.
@@ -36,8 +35,8 @@ export function riverScene(x, y, w, h) {
     );
   }
   const samples = 60;
-  const topPts = [],
-    botPts = [];
+  const topPts: [number, number][] = [],
+    botPts: [number, number][] = [];
   for (let i = 0; i <= samples; i++) {
     const px = x + (i / samples) * w;
     topPts.push([px, riverEdgeY(-1, px)]);
@@ -47,44 +46,44 @@ export function riverScene(x, y, w, h) {
   // 1. SAND on top — a polygon from banner top to river top edge
   let dSand = `M ${x} ${y} L ${x + w} ${y} `;
   for (let i = topPts.length - 1; i >= 0; i--) {
-    dSand += `L ${topPts[i][0]} ${topPts[i][1]} `;
+    dSand += `L ${topPts[i]![0]} ${topPts[i]![1]} `;
   }
   dSand += "Z";
-  layers.shapes.appendChild(svgPath(dSand, { fill: SAND }));
+  layers.shapes!.appendChild(svgPath(dSand, { fill: SAND }));
 
   // 2. MUD on bottom — banner bottom up to river bottom edge
   let dMud = `M ${x} ${y + h} L ${x + w} ${y + h} `;
   for (let i = botPts.length - 1; i >= 0; i--) {
-    dMud += `L ${botPts[i][0]} ${botPts[i][1]} `;
+    dMud += `L ${botPts[i]![0]} ${botPts[i]![1]} `;
   }
   dMud += "Z";
-  layers.shapes.appendChild(svgPath(dMud, { fill: MUD }));
+  layers.shapes!.appendChild(svgPath(dMud, { fill: MUD }));
 
   // 3. RIVER body — between top and bottom edges
-  let dRiver = `M ${topPts[0][0]} ${topPts[0][1]} `;
+  let dRiver = `M ${topPts[0]![0]} ${topPts[0]![1]} `;
   for (let i = 1; i < topPts.length; i++) {
-    dRiver += `L ${topPts[i][0]} ${topPts[i][1]} `;
+    dRiver += `L ${topPts[i]![0]} ${topPts[i]![1]} `;
   }
   for (let i = botPts.length - 1; i >= 0; i--) {
-    dRiver += `L ${botPts[i][0]} ${botPts[i][1]} `;
+    dRiver += `L ${botPts[i]![0]} ${botPts[i]![1]} `;
   }
   dRiver += "Z";
-  layers.shapes.appendChild(svgPath(dRiver, { fill: RIVER_BLUE }));
+  layers.shapes!.appendChild(svgPath(dRiver, { fill: RIVER_BLUE }));
 
   // 4. River bank outlines (top and bottom edges of the river)
-  function buildEdgePath(pts) {
-    let d = `M ${pts[0][0]} ${pts[0][1]} `;
-    for (let i = 1; i < pts.length; i++) d += `L ${pts[i][0]} ${pts[i][1]} `;
+  function buildEdgePath(pts: [number, number][]): string {
+    let d = `M ${pts[0]![0]} ${pts[0]![1]} `;
+    for (let i = 1; i < pts.length; i++) d += `L ${pts[i]![0]} ${pts[i]![1]} `;
     return d;
   }
-  layers.shapes.appendChild(
+  layers.shapes!.appendChild(
     svgPath(buildEdgePath(topPts), {
       fill: "none",
       stroke: DEEP_BLUE,
       strokeWidth: LINE_W,
     }),
   );
-  layers.shapes.appendChild(
+  layers.shapes!.appendChild(
     svgPath(buildEdgePath(botPts), {
       fill: "none",
       stroke: DEEP_BLUE,

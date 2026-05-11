@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { layers } from "../state.js";
 import { random as rng } from "../util/rng.js";
 import { embedCanvasAsImage } from "../util/canvasLayer.js";
@@ -16,7 +15,7 @@ import { embedCanvasAsImage } from "../util/canvasLayer.js";
 //      visible 3D form.
 //   5. Lava channels: hot palette + extra brightness near the centerline.
 // All baked to a canvas and embedded as SVG <image>.
-export function magmaRocks(x, y, w, h, magmaColor, edgeColor) {
+export function magmaRocks(x: number, y: number, w: number, h: number): void {
   // Baked lava configuration (chosen via slider tuning).
   // cells 12, thickness 0.080, falloff 0.140, height 3.30,
   // flow 0.036, cragginess 0.060, edge round 0.000, wobble 0.060
@@ -36,7 +35,7 @@ export function magmaRocks(x, y, w, h, magmaColor, edgeColor) {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d")!;
   const img = ctx.createImageData(W, H);
   const data = img.data;
 
@@ -47,7 +46,11 @@ export function magmaRocks(x, y, w, h, magmaColor, edgeColor) {
   // randomVector — straight port of Quilez's HLSL.  Deterministic per cell
   // coordinate, so adjacent pixels in the same cell get the same control.
   const angleOffset = rng() * 1000; // global per-render randomness
-  function randomVector(cellX, cellY, ang) {
+  function randomVector(
+    cellX: number,
+    cellY: number,
+    ang: number,
+  ): [number, number] {
     // Same matrix multiply / sin / fract as the shader
     const m00 = 15.27,
       m01 = 47.63,
@@ -65,7 +68,10 @@ export function magmaRocks(x, y, w, h, magmaColor, edgeColor) {
   }
 
   // distFromEdge field.  Returns { distFromCenter, distFromEdge }.
-  function voronoiField(uvX, uvY) {
+  function voronoiField(
+    uvX: number,
+    uvY: number,
+  ): { dCenter: number; dEdge: number } {
     const sX = uvX * cellDensity,
       sY = uvY * cellDensity;
     const cellX = Math.floor(sX),
@@ -100,7 +106,7 @@ export function magmaRocks(x, y, w, h, magmaColor, edgeColor) {
     // those sharp polygon corners into smooth curves.  edgeSmooth=0
     // collapses to the original hard min (fully polygonal); higher values
     // give increasingly rounded organic cell shapes.
-    let dEdge;
+    let dEdge: number;
     if (edgeSmooth <= 0) {
       // Hard min — original Quilez behavior
       dEdge = 8.0;
@@ -161,7 +167,7 @@ export function magmaRocks(x, y, w, h, magmaColor, edgeColor) {
   const ph1y = rng() * Math.PI * 2;
   const ph2x = rng() * Math.PI * 2;
   const ph2y = rng() * Math.PI * 2;
-  function flowUV(uvX, uvY) {
+  function flowUV(uvX: number, uvY: number): [number, number] {
     const A1 = flowStrength;
     const A2 = A1 * 0.33;
     const wx =
@@ -179,9 +185,9 @@ export function magmaRocks(x, y, w, h, magmaColor, edgeColor) {
   // different position depending on the local noise value, so cell edges
   // become ragged & jagged rather than uniformly wobbly.
   // Phases randomized per render so the cragginess pattern doesn't repeat.
-  const eph = [];
+  const eph: number[] = [];
   for (let i = 0; i < 8; i++) eph.push(rng() * Math.PI * 2);
-  function craggyNoise(uvX, uvY) {
+  function craggyNoise(uvX: number, uvY: number): number {
     // 3 octaves of sin-product noise.  Each octave doubles the frequency
     // and halves the contribution.  Range roughly [-1, 1].
     const f1 = 14.0;
@@ -203,10 +209,10 @@ export function magmaRocks(x, y, w, h, magmaColor, edgeColor) {
   // long.  Frequency cellDensity * 6.0 → wavelength ~cell/6, so each edge
   // sees ~6 oscillations along its length → visible wavy bumps.
   // Two octaves at this scale and 2x for organic non-uniform waves.
-  const wph = [];
+  const wph: number[] = [];
   for (let i = 0; i < 8; i++) wph.push(rng() * Math.PI * 2);
   const wf = cellDensity * 6.0;
-  function wobbleNoise(uvX, uvY) {
+  function wobbleNoise(uvX: number, uvY: number): number {
     const n =
       Math.sin(uvX * wf + wph[0]) * Math.cos(uvY * wf + wph[1]) * 1.0 +
       Math.sin(uvX * wf * 2.0 + wph[2]) *
@@ -216,7 +222,7 @@ export function magmaRocks(x, y, w, h, magmaColor, edgeColor) {
   }
 
   // Smoothstep helper
-  function smoothstep(a, b, t) {
+  function smoothstep(a: number, b: number, t: number): number {
     let x = (t - a) / (b - a);
     if (x < 0) x = 0;
     else if (x > 1) x = 1;
@@ -230,13 +236,14 @@ export function magmaRocks(x, y, w, h, magmaColor, edgeColor) {
   // small rocks read less aggressively shaded; large rocks read more
   // dramatically shaded — both end up with similar shading dynamic range.
   const HEIGHT_POW = 1.5;
-  function heightFn(rawH) {
+  function heightFn(rawH: number): number {
     if (rawH <= 0) return 0;
     return Math.pow(rawH, HEIGHT_POW);
   }
 
   // Color mix helpers
-  function lerp3(a, b, t) {
+  type RGB = [number, number, number];
+  function lerp3(a: RGB, b: RGB, t: number): RGB {
     return [
       a[0] + (b[0] - a[0]) * t,
       a[1] + (b[1] - a[1]) * t,
@@ -245,12 +252,12 @@ export function magmaRocks(x, y, w, h, magmaColor, edgeColor) {
   }
 
   // Color palettes
-  const ROCK_HI = [0x6a, 0x5e, 0x52]; // lit rock crest
-  const ROCK_MD = [0x35, 0x2c, 0x24]; // mid rock body
-  const ROCK_LO = [0x10, 0x09, 0x06]; // deep shadow
-  const LAVA_DEEP = [0xa5, 0x2a, 0x08]; // deep magma red
-  const LAVA_MID = [0xe8, 0x52, 0x1f]; // bright orange
-  const LAVA_HOT = [0xfc, 0xb9, 0x6a]; // hot yellow core
+  const ROCK_HI: RGB = [0x6a, 0x5e, 0x52]; // lit rock crest
+  const ROCK_MD: RGB = [0x35, 0x2c, 0x24]; // mid rock body
+  const ROCK_LO: RGB = [0x10, 0x09, 0x06]; // deep shadow
+  const LAVA_DEEP: RGB = [0xa5, 0x2a, 0x08]; // deep magma red
+  const LAVA_MID: RGB = [0xe8, 0x52, 0x1f]; // bright orange
+  const LAVA_HOT: RGB = [0xfc, 0xb9, 0x6a]; // hot yellow core
   // Light direction (in UV-space normal map convention).
   // Sun coming from upper-left so rocks have visible shading.
   const LX = -0.55,
@@ -329,7 +336,7 @@ export function magmaRocks(x, y, w, h, magmaColor, edgeColor) {
       // at peak.  Use heightHere normalized as a height factor.
       const heightNorm = Math.min(1, heightHere * heightStrength * cellDensity);
       // Two-band gradient: low → mid → hi by heightNorm.
-      let rockBase;
+      let rockBase: RGB;
       if (heightNorm < 0.5) {
         rockBase = lerp3(ROCK_LO, ROCK_MD, heightNorm * 2);
       } else {
@@ -343,7 +350,7 @@ export function magmaRocks(x, y, w, h, magmaColor, edgeColor) {
       // Lava color: hot at the center of channels (where dEdge is closest to
       // 0), cooling toward edges.  Use dEdge / thickness as cooling factor.
       const lavaCool = Math.min(1, dEdge / Math.max(0.001, thickness));
-      let lavaBase;
+      let lavaBase: RGB;
       if (lavaCool < 0.4) {
         lavaBase = lerp3(LAVA_HOT, LAVA_MID, lavaCool / 0.4);
       } else {
@@ -364,5 +371,5 @@ export function magmaRocks(x, y, w, h, magmaColor, edgeColor) {
   }
   ctx.putImageData(img, 0, 0);
 
-  embedCanvasAsImage(layers.shapes, canvas, x, y, w, h);
+  embedCanvasAsImage(layers.shapes!, canvas, x, y, w, h);
 }

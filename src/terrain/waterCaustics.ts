@@ -1,8 +1,29 @@
-// @ts-nocheck
 import { layers } from "../state.js";
 import { random as rng } from "../util/rng.js";
 import { poissonDisk } from "../util/poisson.js";
 import { embedCanvasAsImage } from "../util/canvasLayer.js";
+
+type RGB = [number, number, number];
+type LayerCfg = {
+  count: number;
+  smoothFrac: number;
+  thrLo: number;
+  thrHi: number;
+  warp: number;
+  color: RGB;
+};
+type Field = {
+  seeds: [number, number][];
+  grid: [number, number][][];
+  gridCols: number;
+  gridRows: number;
+  bucketSize: number;
+  smoothness: number;
+  thrLo: number;
+  thrHi: number;
+  color: RGB;
+  warp: number;
+};
 
 // Water caustics — implements the "sharp F1 minus smooth F1" Voronoi trick
 // from the shader-graph technique:
@@ -16,7 +37,12 @@ import { embedCanvasAsImage } from "../util/canvasLayer.js";
 // Rasterized to a hidden <canvas>, then embedded as an SVG <image> so the
 // per-pixel math runs once at render time and the result composites with
 // the rest of the SVG.
-export function waterCaustics(x, y, w, h) {
+export function waterCaustics(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): void {
   // Render resolution — 4x the banner dimensions in mm, so each mm has
   // 4 pixels.  Higher = sharper caustics, but more work.  We're in a
   // banner ~285x35mm so this is ~1140x140px = 160k pixels — fast.
@@ -26,7 +52,7 @@ export function waterCaustics(x, y, w, h) {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d")!;
   const img = ctx.createImageData(W, H);
   const data = img.data;
 
@@ -35,7 +61,7 @@ export function waterCaustics(x, y, w, h) {
   // 2. OVER  (bright white): tight, crisp white ridge.
   // Both layers' parameters are baked in (chosen via prior tuning).  Each
   // layer has its own warp strength so they distort independently.
-  const layerCfg = {
+  const layerCfg: { blue: LayerCfg; white: LayerCfg } = {
     blue: {
       count: 50,
       smoothFrac: 0.2,
@@ -55,19 +81,19 @@ export function waterCaustics(x, y, w, h) {
   };
 
   // Build a Voronoi field (seeds + grid + smoothness) for one layer.
-  function buildField(cfg) {
+  function buildField(cfg: LayerCfg): Field {
     const cellSpacing = Math.sqrt((W * H) / cfg.count);
     const minDist = cellSpacing * 0.55;
     const seeds = poissonDisk(0, 0, W, H, minDist, cfg.count, rng, 80);
     const bucketSize = cellSpacing;
     const gridCols = Math.ceil(W / bucketSize) + 1;
     const gridRows = Math.ceil(H / bucketSize) + 1;
-    const grid = new Array(gridCols * gridRows);
+    const grid: [number, number][][] = new Array(gridCols * gridRows);
     for (let i = 0; i < grid.length; i++) grid[i] = [];
     for (const s of seeds) {
       const gx = Math.min(gridCols - 1, Math.floor(s[0] / bucketSize));
       const gy = Math.min(gridRows - 1, Math.floor(s[1] / bucketSize));
-      grid[gy * gridCols + gx].push(s);
+      grid[gy * gridCols + gx]!.push(s);
     }
     return {
       seeds,
@@ -91,7 +117,7 @@ export function waterCaustics(x, y, w, h) {
   const ph1y = rng() * Math.PI * 2;
   const ph2x = rng() * Math.PI * 2;
   const ph2y = rng() * Math.PI * 2;
-  function warpUV(px, py, amp) {
+  function warpUV(px: number, py: number, amp: number): [number, number] {
     const u = px / W,
       v = py / H;
     const A1 = amp;
@@ -106,7 +132,7 @@ export function waterCaustics(x, y, w, h) {
   }
 
   // Compute the threshold-mask `m` (0..1) for one field at a sample point.
-  function fieldMask(field, wux, wuy) {
+  function fieldMask(field: Field, wux: number, wuy: number): number {
     const gx = Math.min(
       field.gridCols - 1,
       Math.max(0, Math.floor(wux / field.bucketSize)),
@@ -123,10 +149,10 @@ export function waterCaustics(x, y, w, h) {
       for (let dx = -2; dx <= 2; dx++) {
         const ggx = gx + dx;
         if (ggx < 0 || ggx >= field.gridCols) continue;
-        const bucket = field.grid[ggy * field.gridCols + ggx];
+        const bucket = field.grid[ggy * field.gridCols + ggx]!;
         for (let i = 0; i < bucket.length; i++) {
-          const sx = bucket[i][0],
-            sy = bucket[i][1];
+          const sx = bucket[i]![0],
+            sy = bucket[i]![1];
           const ddx = wux - sx,
             ddy = wuy - sy;
           const d = Math.sqrt(ddx * ddx + ddy * ddy);
@@ -137,8 +163,8 @@ export function waterCaustics(x, y, w, h) {
     }
     if (sumExp <= 0) {
       for (let i = 0; i < field.seeds.length; i++) {
-        const ddx = wux - field.seeds[i][0],
-          ddy = wuy - field.seeds[i][1];
+        const ddx = wux - field.seeds[i]![0],
+          ddy = wuy - field.seeds[i]![1];
         const d = Math.sqrt(ddx * ddx + ddy * ddy);
         if (d < d1) d1 = d;
         sumExp += Math.exp(-d / field.smoothness);
@@ -187,5 +213,5 @@ export function waterCaustics(x, y, w, h) {
   ctx.putImageData(img, 0, 0);
 
   // Embed the canvas as an SVG <image>.
-  embedCanvasAsImage(layers.shapes, canvas, x, y, w, h);
+  embedCanvasAsImage(layers.shapes!, canvas, x, y, w, h);
 }

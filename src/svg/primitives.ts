@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { SVG_NS, LINE_W } from "../state.js";
 
 // ─────────────────────────────────────────────────────────────────────
@@ -8,15 +7,19 @@ import { SVG_NS, LINE_W } from "../state.js";
 
 // SVG <path> with stroke and/or fill
 export function svgPath(
-  d,
-  { fill = "none", stroke = "none", strokeWidth = 0 } = {},
-) {
+  d: string,
+  {
+    fill = "none",
+    stroke = "none",
+    strokeWidth = 0,
+  }: { fill?: string; stroke?: string; strokeWidth?: number } = {},
+): SVGPathElement {
   const p = document.createElementNS(SVG_NS, "path");
   p.setAttribute("d", d);
   p.setAttribute("fill", fill);
   if (stroke && stroke !== "none") {
     p.setAttribute("stroke", stroke);
-    p.setAttribute("stroke-width", strokeWidth);
+    p.setAttribute("stroke-width", String(strokeWidth));
     p.setAttribute("stroke-linecap", "round");
     p.setAttribute("stroke-linejoin", "round");
   }
@@ -25,54 +28,76 @@ export function svgPath(
 
 // SVG <line>
 export function svgLine(
-  x1,
-  y1,
-  x2,
-  y2,
-  { stroke = "#111", strokeWidth = LINE_W } = {},
-) {
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  {
+    stroke = "#111",
+    strokeWidth = LINE_W,
+  }: { stroke?: string; strokeWidth?: number } = {},
+): SVGLineElement {
   const l = document.createElementNS(SVG_NS, "line");
-  l.setAttribute("x1", x1);
-  l.setAttribute("y1", y1);
-  l.setAttribute("x2", x2);
-  l.setAttribute("y2", y2);
+  l.setAttribute("x1", String(x1));
+  l.setAttribute("y1", String(y1));
+  l.setAttribute("x2", String(x2));
+  l.setAttribute("y2", String(y2));
   l.setAttribute("stroke", stroke);
-  l.setAttribute("stroke-width", strokeWidth);
+  l.setAttribute("stroke-width", String(strokeWidth));
   l.setAttribute("stroke-linecap", "round");
   return l;
 }
 
 // Plain SVG rounded rect (used as crisp fill underlay so the rough outline can wobble freely on top)
-export function svgRect(x, y, w, h, fill, rx = 0) {
+export function svgRect(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  fill: string,
+  rx = 0,
+): SVGRectElement {
   const r = document.createElementNS(SVG_NS, "rect");
-  r.setAttribute("x", x);
-  r.setAttribute("y", y);
-  r.setAttribute("width", w);
-  r.setAttribute("height", h);
+  r.setAttribute("x", String(x));
+  r.setAttribute("y", String(y));
+  r.setAttribute("width", String(w));
+  r.setAttribute("height", String(h));
   if (rx) {
-    r.setAttribute("rx", rx);
-    r.setAttribute("ry", rx);
+    r.setAttribute("rx", String(rx));
+    r.setAttribute("ry", String(rx));
   }
   r.setAttribute("fill", fill);
   return r;
 }
 
 // Plain SVG image element for raster icons
-export function svgImage(href, x, y, w, h) {
+export function svgImage(
+  href: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): SVGImageElement {
   const img = document.createElementNS(SVG_NS, "image");
   img.setAttributeNS("http://www.w3.org/1999/xlink", "href", href);
   img.setAttribute("href", href);
-  img.setAttribute("x", x);
-  img.setAttribute("y", y);
-  img.setAttribute("width", w);
-  img.setAttribute("height", h);
+  img.setAttribute("x", String(x));
+  img.setAttribute("y", String(y));
+  img.setAttribute("width", String(w));
+  img.setAttribute("height", String(h));
   img.setAttribute("preserveAspectRatio", "xMidYMid meet");
   return img;
 }
 
 // Helper: build a rounded-rect path string. rough.js's rectangle() ignores rx,
 // so we hand-roll a path so corners stay round.
-export function roundedRectPath(x, y, w, h, r) {
+export function roundedRectPath(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+): string {
   r = Math.max(0, Math.min(r, w / 2, h / 2));
   if (r === 0) {
     return `M ${x} ${y} H ${x + w} V ${y + h} H ${x} Z`;
@@ -91,6 +116,8 @@ export function roundedRectPath(x, y, w, h, r) {
   ].join(" ");
 }
 
+export type ArrowDir = "up" | "down" | "left" | "right";
+
 // Build a path that is a rounded square OPTIONALLY with a triangular arrow
 // protruding from one of its sides (the merged shape).  When `arrowDir` is
 // 'right' | 'down' | 'left' | 'up', the side perpendicular to that direction
@@ -100,14 +127,14 @@ export function roundedRectPath(x, y, w, h, r) {
 // "side-up-to-base-corner → out to apex → back to other-base-corner →
 //  continue along side".  Non-arrow sides traverse normally.
 export function squareWithArrowPath(
-  x,
-  y,
-  size,
-  r,
-  arrowDir,
-  arrowLen,
-  arrowHalf,
-) {
+  x: number,
+  y: number,
+  size: number,
+  r: number,
+  arrowDir: ArrowDir | null | undefined,
+  arrowLen: number,
+  arrowHalf: number,
+): string {
   if (!arrowDir || arrowLen <= 0) return roundedRectPath(x, y, size, size, r);
   r = Math.max(0, Math.min(r, size / 2));
   const mid = size / 2;

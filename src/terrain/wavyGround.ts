@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { layers } from "../state.js";
 import { svgPath } from "../svg/primitives.js";
 
@@ -9,11 +8,19 @@ import { svgPath } from "../svg/primitives.js";
 //
 // `crestY` controls the ground's average top y-coordinate (the "horizon").
 // `amplitude` controls how high humps rise above the average horizon.
-export function wavyGround(x, y, w, h, crestY, amplitude, fillColor) {
+export function wavyGround(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  crestY: number,
+  amplitude: number,
+  fillColor: string,
+): void {
   // Sample the top edge as a series of points combining two sine waves so
   // the bumps look natural (some big, some small).
   const samples = 80;
-  const pts = [];
+  const pts: [number, number][] = [];
   for (let i = 0; i <= samples; i++) {
     const t = i / samples;
     const px = x + t * w;
@@ -26,10 +33,10 @@ export function wavyGround(x, y, w, h, crestY, amplitude, fillColor) {
   }
   // Build path: top wavy edge left-to-right, then down to bottom-right
   // corner, across to bottom-left, close.
-  let d = `M ${pts[0][0]} ${pts[0][1]} `;
+  let d = `M ${pts[0]![0]} ${pts[0]![1]} `;
   for (let i = 1; i < pts.length; i++) {
-    d += `L ${pts[i][0]} ${pts[i][1]} `;
+    d += `L ${pts[i]![0]} ${pts[i]![1]} `;
   }
   d += `L ${x + w} ${y + h} L ${x} ${y + h} Z`;
-  layers.shapes.appendChild(svgPath(d, { fill: fillColor }));
+  layers.shapes!.appendChild(svgPath(d, { fill: fillColor }));
 }

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { SVG_NS } from "../state.js";
 import { uid } from "../util/uid.js";
 
@@ -16,7 +15,11 @@ import { uid } from "../util/uid.js";
 // Build a single filter that gives shapes a soft inner shadow.  Returns
 // just the filter ID — caller applies via `filter="url(#id)"`.  Unique
 // per call so multiple shapes can have differently-tuned shadows.
-export function makeInsetShadowFilter(defsParent, idPrefix, blur) {
+export function makeInsetShadowFilter(
+  defsParent: SVGElement,
+  idPrefix: string,
+  blur: number,
+): string {
   const f = document.createElementNS(SVG_NS, "filter");
   const id = uid(idPrefix);
   f.setAttribute("id", id);
@@ -26,7 +29,7 @@ export function makeInsetShadowFilter(defsParent, idPrefix, blur) {
   f.setAttribute("height", "110%");
   const blurNode = document.createElementNS(SVG_NS, "feGaussianBlur");
   blurNode.setAttribute("in", "SourceGraphic");
-  blurNode.setAttribute("stdDeviation", blur);
+  blurNode.setAttribute("stdDeviation", String(blur));
   f.appendChild(blurNode);
   defsParent.appendChild(f);
   return id;
@@ -41,11 +44,21 @@ export function makeInsetShadowFilter(defsParent, idPrefix, blur) {
 //   blur       — Gaussian blur stdDeviation in mm (0 = sharp frame)
 //   opacity    — overall shadow opacity
 export function applyInsetShadow(
-  parent,
-  shapePath,
-  defsParent,
-  { color = "#000", thickness = 1.5, blur = 0.6, opacity = 0.6 } = {},
-) {
+  parent: SVGElement,
+  shapePath: string,
+  defsParent: SVGElement,
+  {
+    color = "#000",
+    thickness = 1.5,
+    blur = 0.6,
+    opacity = 0.6,
+  }: {
+    color?: string;
+    thickness?: number;
+    blur?: number;
+    opacity?: number;
+  } = {},
+): SVGGElement {
   // Clip path so the thick stroke only renders INSIDE the shape (otherwise
   // half the stroke would extend outside the shape's edge).
   const clipId = uid("inset-clip");
@@ -61,7 +74,7 @@ export function applyInsetShadow(
 
   const g = document.createElementNS(SVG_NS, "g");
   g.setAttribute("clip-path", `url(#${clipId})`);
-  g.setAttribute("opacity", opacity);
+  g.setAttribute("opacity", String(opacity));
   if (blur > 0) g.setAttribute("filter", `url(#${filterId})`);
   // The thick stroke — half is outside the shape (clipped away) so the
   // visible band has thickness `thickness / 2`.
@@ -69,7 +82,7 @@ export function applyInsetShadow(
   stroke.setAttribute("d", shapePath);
   stroke.setAttribute("fill", "none");
   stroke.setAttribute("stroke", color);
-  stroke.setAttribute("stroke-width", thickness);
+  stroke.setAttribute("stroke-width", String(thickness));
   stroke.setAttribute("stroke-linejoin", "round");
   g.appendChild(stroke);
   parent.appendChild(g);

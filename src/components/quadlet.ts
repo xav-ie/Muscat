@@ -1,15 +1,21 @@
-// @ts-nocheck
 import { SVG_NS, layers } from "../state.js";
 import { iconSquare } from "./iconSquare.js";
+import type { IconTheme } from "./iconSquare.js";
+import type { ArrowDir } from "../svg/primitives.js";
 
 // One quadlet: 2x2 grid of icon squares with 4 directional arrows in the gaps
 // indicating a cyclic reading flow:  TL → TR → BR → BL → TL  (clockwise)
 //   [jester ] → [lute   ]
 //      ↑           ↓
 //   [feather] ← [crystal]
-export function quadlet(x, y, sq, theme) {
+export function quadlet(
+  x: number,
+  y: number,
+  sq: number,
+  theme: IconTheme,
+): void {
   const gap = sq * 0.18; // gap between the 2x2 squares
-  const iconKeys = [
+  const iconKeys: string[][] = [
     ["jester", "lute"],
     ["feather", "crystal"],
   ];
@@ -20,7 +26,7 @@ export function quadlet(x, y, sq, theme) {
   // destination square's edge — no bleed past — because the arrow can't
   // visually disconnect from its source under grain-filter displacement
   // (they're the same path).  Cyclic flow TL→TR→BR→BL→TL:
-  const arrowDirs = [
+  const arrowDirs: ArrowDir[][] = [
     ["right", "down"], // row 0: TL points right, TR points down
     ["up", "left"], // row 1: BL points up,    BR points left
   ];
@@ -34,7 +40,7 @@ export function quadlet(x, y, sq, theme) {
   const inkGroup = document.createElementNS(SVG_NS, "g");
   inkGroup.setAttribute("filter", "url(#printed-on-paper)");
   inkGroup.setAttribute("opacity", "0.80");
-  saved.appendChild(inkGroup);
+  saved!.appendChild(inkGroup);
   layers.shapes = inkGroup;
   try {
     for (let r = 0; r < 2; r++) {
@@ -43,9 +49,9 @@ export function quadlet(x, y, sq, theme) {
           x + c * (sq + gap),
           y + r * (sq + gap),
           sq,
-          iconKeys[r][c],
+          iconKeys[r]![c]!,
           theme,
-          arrowDirs[r][c],
+          arrowDirs[r]![c]!,
         );
       }
     }
@@ -56,7 +62,14 @@ export function quadlet(x, y, sq, theme) {
 
 // Row of `count` quadlets, evenly spaced.  `theme` colors apply to all icons,
 // arrows and squares in the row.
-export function quadletRow(x, y, sq, count, spanW, theme) {
+export function quadletRow(
+  x: number,
+  y: number,
+  sq: number,
+  count: number,
+  spanW: number,
+  theme: IconTheme,
+): void {
   const quadW = sq * 2 + sq * 0.18; // matches gap inside quadlet()
   const totalQuad = quadW * count;
   const gap = (spanW - totalQuad) / (count - 1);

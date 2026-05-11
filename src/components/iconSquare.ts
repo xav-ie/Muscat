@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { SVG_NS, LINE_W, board, layers } from "../state.js";
 import { ICONS } from "../constants.js";
 import { uid } from "../util/uid.js";
@@ -9,6 +8,13 @@ import {
   roundedRectPath,
   squareWithArrowPath,
 } from "../svg/primitives.js";
+import type { ArrowDir } from "../svg/primitives.js";
+
+export type IconTheme = {
+  squareFill: string;
+  iconColor: string;
+  outline: string;
+};
 
 // Rough rounded square. If `fill` is set, a crisp SVG rect is laid down first
 // so the rough outline can wobble outside its edges without smearing the color.
@@ -16,16 +22,26 @@ import {
 // outline (now plain SVG, displaced by the grain filter) wobbles outside its
 // edges without smearing the color.
 export function square(
-  x,
-  y,
-  size,
-  { fill = "none", stroke = "#111", strokeWidth = LINE_W, radius = 1.5 } = {},
-) {
+  x: number,
+  y: number,
+  size: number,
+  {
+    fill = "none",
+    stroke = "#111",
+    strokeWidth = LINE_W,
+    radius = 1.5,
+  }: {
+    fill?: string;
+    stroke?: string;
+    strokeWidth?: number;
+    radius?: number;
+  } = {},
+): void {
   if (fill && fill !== "none") {
-    layers.shapes.appendChild(svgRect(x, y, size, size, fill, radius));
+    layers.shapes!.appendChild(svgRect(x, y, size, size, fill, radius));
   }
   if (stroke && stroke !== "none") {
-    layers.shapes.appendChild(
+    layers.shapes!.appendChild(
       svgPath(roundedRectPath(x, y, size, size, radius), {
         fill: "none",
         stroke,
@@ -38,15 +54,15 @@ export function square(
 // Tint-filter registry — maps a hex color to a filter id that recolors any
 // graphic to that color while preserving its alpha channel.  Used to recolor
 // the icon SVGs at render time without baking in colors at build time.
-let __tintRegistry = null;
+let __tintRegistry: Map<string, string> | null = null;
 
-export function resetTintRegistry() {
+export function resetTintRegistry(): void {
   __tintRegistry = null;
 }
 
-export function getTintFilterId(color) {
+export function getTintFilterId(color: string): string {
   if (!__tintRegistry) __tintRegistry = new Map();
-  if (__tintRegistry.has(color)) return __tintRegistry.get(color);
+  if (__tintRegistry.has(color)) return __tintRegistry.get(color)!;
   const id = uid(`tint-${color.replace("#", "")}`);
   const filter = document.createElementNS(SVG_NS, "filter");
   filter.setAttribute("id", id);
@@ -65,7 +81,7 @@ export function getTintFilterId(color) {
   filter.appendChild(flood);
   filter.appendChild(composite);
   // Find the SVG's defs (top-level) — assumed to exist by render time
-  const defs = board.querySelector("defs");
+  const defs = board.querySelector("defs")!;
   defs.appendChild(filter);
   __tintRegistry.set(color, id);
   return id;
@@ -76,7 +92,14 @@ export function getTintFilterId(color) {
 //   theme.squareFill — fill of the rounded square
 //   theme.iconColor  — recolor target for the icon SVG
 //   theme.outline    — square outline color
-export function iconSquare(x, y, size, iconKey, theme, arrowDir) {
+export function iconSquare(
+  x: number,
+  y: number,
+  size: number,
+  iconKey: string,
+  theme: IconTheme,
+  arrowDir: ArrowDir | null | undefined,
+): void {
   // Build the path: a rounded square optionally with a triangular arrow
   // protrusion on one side.  When merged, the arrow becomes part of the
   // square's path so it gets the same outline, the same fill, the same
@@ -98,7 +121,7 @@ export function iconSquare(x, y, size, iconKey, theme, arrowDir) {
 
   // Crisp filled underlay (uniform color regardless of grain displacement)
   if (theme.squareFill && theme.squareFill !== "none") {
-    layers.shapes.appendChild(
+    layers.shapes!.appendChild(
       svgPath(path, {
         fill: theme.squareFill,
         stroke: "none",
@@ -116,7 +139,7 @@ export function iconSquare(x, y, size, iconKey, theme, arrowDir) {
     // edge doesn't spike out as a miter point under stroke-linejoin='miter'.
     outlinePath.setAttribute("stroke-linejoin", "round");
     outlinePath.setAttribute("stroke-linecap", "round");
-    layers.shapes.appendChild(outlinePath);
+    layers.shapes!.appendChild(outlinePath);
   }
 
   // Icon image, padded inside the square
@@ -125,5 +148,5 @@ export function iconSquare(x, y, size, iconKey, theme, arrowDir) {
   const dataUrl = `data:image/svg+xml;base64,${ICONS[iconKey]}`;
   const img = svgImage(dataUrl, x + pad, y + pad, iconSize, iconSize);
   img.setAttribute("filter", `url(#${getTintFilterId(theme.iconColor)})`);
-  layers.shapes.appendChild(img);
+  layers.shapes!.appendChild(img);
 }

@@ -1,7 +1,5 @@
-// @ts-nocheck
 import { SVG_NS, LINE_W, board, G, layers } from "./state.js";
 import { reseed } from "./util/rng.js";
-import { random as rng } from "./util/rng.js";
 import { svgPath } from "./svg/primitives.js";
 import { clear, setupLayers, ensureSvgFont } from "./svg/filters.js";
 import { resetTintRegistry } from "./components/iconSquare.js";
@@ -9,11 +7,12 @@ import { quadletRow } from "./components/quadlet.js";
 import { edgeNumber } from "./components/edgeNumber.js";
 import { castle } from "./components/castle.js";
 import { terrainBanner } from "./terrain/terrainBanner.js";
+import type { IconTheme } from "./components/iconSquare.js";
 
 // ─────────────────────────────────────────────────────────────────────
 // COMPOSE THE BOARD
 // ─────────────────────────────────────────────────────────────────────
-export function render() {
+export function render(): void {
   reseed(G.seed);
   resetTintRegistry();
   clear();
@@ -138,7 +137,7 @@ export function render() {
       merge.appendChild(n);
     }
     f.appendChild(merge);
-    board.querySelector("defs").appendChild(f);
+    board.querySelector("defs")!.appendChild(f);
   }
   // Banner fill + WHITE border
   const bannerEl = svgPath(bannerPath, {
@@ -147,7 +146,7 @@ export function render() {
     strokeWidth: LINE_W * 1.5,
   });
   bannerEl.setAttribute("filter", `url(#${titleShadowId})`);
-  layers.shapes.appendChild(bannerEl);
+  layers.shapes!.appendChild(bannerEl);
   // Title text — Kranky, sized to fit the banner height, centered horizontally
   // within the rectangular body (not extending into the tails).  White text
   // with a subtle dark-purple stroke outline for readability.
@@ -171,7 +170,7 @@ export function render() {
   const quadletNums = ["8", "6", "4", "2"];
   const bannerNums = ["-4", "-3", "-2", "-1"];
   // Per-section terrain colors (top → bottom: -4 lava, -3 sand, -2 sea, -1 grass)
-  const bannerColors = [
+  const bannerColors: { fill: string; stroke: string }[] = [
     { fill: "#e8521f", stroke: "#7a1a05" }, // lava red / dark magma
     { fill: "#e8c773", stroke: "#7a5a2a" }, // sand yellow / dirt
     { fill: "#3a91c2", stroke: "#0e3450" }, // sea blue / dark ocean
@@ -191,11 +190,10 @@ export function render() {
     // visible against the papyrus background between squares (and they
     // double as a subtle terrain-color cue).
     const PAPYRUS = "#f5e8c4";
-    const rowTheme = {
-      squareFill: bannerColors[s].stroke,
+    const rowTheme: IconTheme = {
+      squareFill: bannerColors[s]!.stroke,
       iconColor: PAPYRUS,
       outline: PAPYRUS,
-      arrowColor: bannerColors[s].stroke,
     };
     quadletRow(contentX, sy, sq, quadCount, contentW, rowTheme);
     terrainBanner(
@@ -204,19 +202,26 @@ export function render() {
       bannerY,
       contentW,
       bannerH,
-      bannerColors[s].fill,
-      bannerColors[s].stroke,
+      bannerColors[s]!.fill,
+      bannerColors[s]!.stroke,
     );
 
     // Edge labels — black for quadlet rows, red for banners.  All same size.
     const quadMidY = sy + quadH / 2;
     const bannerMidY = bannerY + bannerH / 2;
-    edgeNumber(leftNumX, quadMidY, quadletNums[s], "#111", numFontSize, "end");
-    edgeNumber(rightNumX, quadMidY, quadletNums[s], "#111", numFontSize, "end");
+    edgeNumber(leftNumX, quadMidY, quadletNums[s]!, "#111", numFontSize, "end");
+    edgeNumber(
+      rightNumX,
+      quadMidY,
+      quadletNums[s]!,
+      "#111",
+      numFontSize,
+      "end",
+    );
     edgeNumber(
       leftNumX,
       bannerMidY,
-      bannerNums[s],
+      bannerNums[s]!,
       "#E31D1D",
       numFontSize,
       "end",
@@ -224,7 +229,7 @@ export function render() {
     edgeNumber(
       rightNumX,
       bannerMidY,
-      bannerNums[s],
+      bannerNums[s]!,
       "#E31D1D",
       numFontSize,
       "end",

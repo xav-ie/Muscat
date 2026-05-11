@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { LINE_W, layers } from "../state.js";
 import { random as rng } from "../util/rng.js";
 import { poissonDisk } from "../util/poisson.js";
@@ -13,7 +12,7 @@ import { svgPath } from "../svg/primitives.js";
 
 // One grass tuft: 3-5 thin curved blades fanning out from a single ground
 // point.  Each blade is a quadratic bezier from base to tip.
-export function grassTuft(cx, groundY, color) {
+export function grassTuft(cx: number, groundY: number, color: string): void {
   const n = 3 + Math.floor(rng() * 3); // 3-5 blades
   const baseSpread = 1.6; // mm of horizontal spread at ground
   for (let i = 0; i < n; i++) {
@@ -30,7 +29,7 @@ export function grassTuft(cx, groundY, color) {
     const ctrlX = bx + lean * 0.5 + (rng() - 0.5) * 0.6;
     const ctrlY = by - height * 0.5;
     const d = `M ${bx} ${by} Q ${ctrlX} ${ctrlY} ${tx} ${ty}`;
-    layers.shapes.appendChild(
+    layers.shapes!.appendChild(
       svgPath(d, {
         fill: "none",
         stroke: color,
@@ -44,7 +43,14 @@ export function grassTuft(cx, groundY, color) {
 // full height of the banner so the grass fills the whole row, not just the
 // bottom strip.  Each tuft's "ground line" is jittered so blades don't all
 // start at the same y.
-export function scatterGrass(x, y, w, h, color, count) {
+export function scatterGrass(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  color: string,
+  count: number,
+): void {
   const margin = 4; // keep away from the box edges
   for (let i = 0; i < count; i++) {
     const cx = x + margin + rng() * (w - margin * 2);
@@ -56,7 +62,12 @@ export function scatterGrass(x, y, w, h, color, count) {
 }
 
 // One wave: a small ~ shape with two crests, drawn as a single cubic.
-export function wave(cx, cy, width, color) {
+export function wave(
+  cx: number,
+  cy: number,
+  width: number,
+  color: string,
+): void {
   const half = width / 2;
   const amp = width * 0.18;
   // Cubic that goes up then down then up again across the span
@@ -64,7 +75,7 @@ export function wave(cx, cy, width, color) {
     `M ${cx - half} ${cy} ` +
     `C ${cx - half * 0.5} ${cy - amp}, ${cx - half * 0.2} ${cy + amp}, ${cx} ${cy} ` +
     `C ${cx + half * 0.2} ${cy - amp}, ${cx + half * 0.5} ${cy + amp}, ${cx + half} ${cy}`;
-  layers.shapes.appendChild(
+  layers.shapes!.appendChild(
     svgPath(d, {
       fill: "none",
       stroke: color,
@@ -75,7 +86,14 @@ export function wave(cx, cy, width, color) {
 
 // Scatter `count` waves across the sea banner WITHOUT overlap.
 // Uses Poisson-disk rejection sampling so wave centres stay ≥ 12mm apart.
-export function scatterWaves(x, y, w, h, color, count) {
+export function scatterWaves(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  color: string,
+  count: number,
+): void {
   const margin = 5;
   const placed = poissonDisk(
     x + margin,

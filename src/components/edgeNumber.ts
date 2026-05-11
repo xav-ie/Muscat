@@ -1,5 +1,7 @@
-// @ts-nocheck
 import { SVG_NS, layers } from "../state.js";
+
+export type TextAlign = "start" | "middle" | "end";
+export type TextOutline = { color: string; width: number };
 
 // Number rendered with the Kranky display font.
 // `align` is one of 'start' | 'middle' | 'end' — picks the SVG text-anchor.
@@ -9,27 +11,27 @@ import { SVG_NS, layers } from "../state.js";
 // If `outline` is given (`{ color, width }`), the text gets a stroke of that
 // color and width drawn BEHIND the fill (paint-order: stroke fill).
 export function edgeNumber(
-  x,
-  cy,
-  text,
-  color,
-  sizeMm,
-  align = "middle",
-  outline = null,
-) {
+  x: number,
+  cy: number,
+  text: string,
+  color: string,
+  sizeMm: number,
+  align: TextAlign = "middle",
+  outline: TextOutline | null = null,
+): void {
   const t = document.createElementNS(SVG_NS, "text");
-  t.setAttribute("x", x);
-  t.setAttribute("y", cy);
+  t.setAttribute("x", String(x));
+  t.setAttribute("y", String(cy));
   t.setAttribute("text-anchor", align);
   t.setAttribute("dominant-baseline", "central");
   t.setAttribute("font-family", '"Kranky", "Caveat", "Comic Sans MS", cursive');
-  t.setAttribute("font-size", sizeMm);
+  t.setAttribute("font-size", String(sizeMm));
   t.setAttribute("fill", color);
   if (outline) {
     // paint-order: stroke fill — stroke behind so visible glyph color is fill
     t.setAttribute("paint-order", "stroke fill");
     t.setAttribute("stroke", outline.color);
-    t.setAttribute("stroke-width", outline.width);
+    t.setAttribute("stroke-width", String(outline.width));
     t.setAttribute("stroke-linejoin", "round");
   }
   if (text.startsWith("-")) {
@@ -38,7 +40,7 @@ export function edgeNumber(
     // <text>) makes both glyphs anchor at the same vertical center regardless
     // of font-size differences.
     const minus = document.createElementNS(SVG_NS, "tspan");
-    minus.setAttribute("font-size", sizeMm * 0.55);
+    minus.setAttribute("font-size", String(sizeMm * 0.55));
     minus.setAttribute("dominant-baseline", "central");
     minus.textContent = "-";
     t.appendChild(minus);
@@ -47,11 +49,11 @@ export function edgeNumber(
     // dx on the DIGIT shifts it right relative to where it would naturally
     // land after the minus.  This is what actually opens a gap (dx on the
     // minus only shifts both the minus AND the digit left together).
-    rest.setAttribute("dx", 2);
+    rest.setAttribute("dx", String(2));
     rest.textContent = text.slice(1);
     t.appendChild(rest);
   } else {
     t.textContent = text;
   }
-  layers.text.appendChild(t);
+  layers.text!.appendChild(t);
 }

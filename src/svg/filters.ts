@@ -1,12 +1,11 @@
-// @ts-nocheck
 import { SVG_NS, board, G, layers } from "../state.js";
 import { KRANKY_B64 } from "../constants.js";
 
-export function clear() {
+export function clear(): void {
   while (board.firstChild) board.removeChild(board.firstChild);
 }
 
-export function setupLayers() {
+export function setupLayers(): void {
   // <defs> with the grain filter
   const defs = document.createElementNS(SVG_NS, "defs");
   const filter = document.createElementNS(SVG_NS, "filter");
@@ -22,9 +21,9 @@ export function setupLayers() {
   const turb = document.createElementNS(SVG_NS, "feTurbulence");
   turb.setAttribute("id", "grain-turb");
   turb.setAttribute("type", "fractalNoise");
-  turb.setAttribute("baseFrequency", G.grainFreq);
+  turb.setAttribute("baseFrequency", String(G.grainFreq));
   turb.setAttribute("numOctaves", "2");
-  turb.setAttribute("seed", G.seed);
+  turb.setAttribute("seed", String(G.seed));
   turb.setAttribute("result", "noise");
   filter.appendChild(turb);
 
@@ -33,7 +32,7 @@ export function setupLayers() {
   disp.setAttribute("id", "grain-disp");
   disp.setAttribute("in", "SourceGraphic");
   disp.setAttribute("in2", "noise");
-  disp.setAttribute("scale", G.grainScale);
+  disp.setAttribute("scale", String(G.grainScale));
   filter.appendChild(disp);
 
   defs.appendChild(filter);
@@ -48,12 +47,12 @@ export function setupLayers() {
   const wood = document.createElementNS(SVG_NS, "pattern");
   wood.setAttribute("id", "wood");
   wood.setAttribute("patternUnits", "userSpaceOnUse");
-  wood.setAttribute("width", TILE_W);
-  wood.setAttribute("height", TILE_H);
+  wood.setAttribute("width", String(TILE_W));
+  wood.setAttribute("height", String(TILE_H));
   // Background plank color (covers full tile)
   const woodBg = document.createElementNS(SVG_NS, "rect");
-  woodBg.setAttribute("width", TILE_W);
-  woodBg.setAttribute("height", TILE_H);
+  woodBg.setAttribute("width", String(TILE_W));
+  woodBg.setAttribute("height", String(TILE_H));
   woodBg.setAttribute("fill", "#8b6f47");
   wood.appendChild(woodBg);
   // NOTE: All plank dividers (vertical AND horizontal joints) used to live
@@ -319,7 +318,7 @@ export function setupLayers() {
 // for the PNG export — when the SVG is serialized and loaded via `new Image()`
 // for canvas rasterization, only resources reachable from inside the SVG are
 // loaded.  Embedding the font as a base64 data URL keeps the SVG self-contained.
-export function ensureSvgFont() {
+export function ensureSvgFont(): void {
   const styleEl = document.createElementNS(SVG_NS, "style");
   styleEl.textContent = `
     @font-face {

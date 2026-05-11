@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { SVG_NS, LINE_W, layers } from "../state.js";
 import { uid } from "../util/uid.js";
 import {
@@ -13,7 +12,11 @@ import { edgeNumber } from "./edgeNumber.js";
 // Castle at the top of the board.
 // Footprint: (x, y) is top-left of the bounding box, (w, h) is the size.
 // Built from primitives: an outer silhouette path, an arch, and inner squares.
-export function castle(x, y, w, h) {
+export function castle(x: number, y: number, w: number, h: number): void {
+  // Local helper — many setAttribute calls in this file pass numbers;
+  // wrap them via String() at the call site.
+  const set = (el: Element, k: string, v: string | number): void =>
+    el.setAttribute(k, String(v));
   // Proportions.  Heights snap to a whole number of brick rows so the bottom
   // row always renders as a full brick (no thin slivers).
   const towerW = w * 0.13;
@@ -32,20 +35,25 @@ export function castle(x, y, w, h) {
   // is M-C-M-C-...-M (always starting and ending with a merlon) so the corners
   // of every parapet read as raised bumps.  Pass the desired merlonCount per
   // section to control how many bumps appear.
-  function crenellate(x0, x1, topY, merlonCount) {
+  function crenellate(
+    x0: number,
+    x1: number,
+    topY: number,
+    merlonCount: number,
+  ): [number, number][] {
     const span = x1 - x0;
     const segCount = 2 * merlonCount - 1; // M C M C ... M
     const segW = span / segCount;
     const merlonY = topY; // top of merlon
     const crenelY = topY + merlonH; // floor of crenel
-    const pts = [];
+    const pts: [number, number][] = [];
     for (let i = 0; i < segCount; i++) {
       const segStart = x0 + i * segW;
       const segEnd = segStart + segW;
       const isMerlon = i % 2 === 0;
-      const y = isMerlon ? merlonY : crenelY;
-      if (i === 0) pts.push([segStart, y]);
-      pts.push([segEnd, y]);
+      const ey = isMerlon ? merlonY : crenelY;
+      if (i === 0) pts.push([segStart, ey]);
+      pts.push([segEnd, ey]);
       if (i < segCount - 1) {
         pts.push([segEnd, isMerlon ? crenelY : merlonY]); // vertical step
       }
@@ -106,7 +114,6 @@ export function castle(x, y, w, h) {
   const CASTLE_STROKE = "#6a6a6a"; // a touch darker than BRICK_GROUT (#7a7a7a)
   const BRICK_FILL = "#b8b6b1"; // gray brick body
   const BRICK_GROUT = "#7a7a7a"; // light gray mortar (matches other lines in tone)
-  const PAPYRUS_FILL = "#f5e8c4"; // matches the page papyrus color
 
   // ── Brick fill of the castle silhouette ──
   // The silhouette path `d` has the crenellations cut out, so we just need
@@ -119,14 +126,19 @@ export function castle(x, y, w, h) {
   // bricks happen to align well enough — OR we can use two clipped fills.
   // Simpler/cleaner: two fills, one for each unique brick width, each clipped
   // to its own region.
-  function makeBrickPattern(id, brickW, originX, originY) {
+  function makeBrickPattern(
+    id: string,
+    brickW: number,
+    originX: number,
+    originY: number,
+  ): SVGPatternElement {
     // Pattern tile = brickW wide × (2*brickH) tall.  Two rows: top row has a
     // joint at x=0, bottom row at x=brickW/2 (running bond).
     const pat = document.createElementNS(SVG_NS, "pattern");
     pat.setAttribute("id", id);
     pat.setAttribute("patternUnits", "userSpaceOnUse");
-    pat.setAttribute("width", brickW);
-    pat.setAttribute("height", brickH * 2);
+    set(pat, "width", brickW);
+    set(pat, "height", brickH * 2);
     // patternTransform shifts the pattern's origin in viewBox space — anchor
     // the (0,0) of the tile to (originX, originY) so the first row of bricks
     // begins exactly at the merlon row.
@@ -134,8 +146,8 @@ export function castle(x, y, w, h) {
 
     // Brick body fill
     const bg = document.createElementNS(SVG_NS, "rect");
-    bg.setAttribute("width", brickW);
-    bg.setAttribute("height", brickH * 2);
+    set(bg, "width", brickW);
+    set(bg, "height", brickH * 2);
     bg.setAttribute("fill", BRICK_FILL);
     pat.appendChild(bg);
 
@@ -154,7 +166,7 @@ export function castle(x, y, w, h) {
     const mortar = document.createElementNS(SVG_NS, "path");
     mortar.setAttribute("d", mortarD);
     mortar.setAttribute("stroke", BRICK_GROUT);
-    mortar.setAttribute("stroke-width", LINE_W);
+    set(mortar, "stroke-width", LINE_W);
     mortar.setAttribute("fill", "none");
     pat.appendChild(mortar);
     return pat;
@@ -182,14 +194,20 @@ export function castle(x, y, w, h) {
   // full silhouette: clip to a simple rectangle per section (left tower,
   // body, right tower).  The silhouette outline drawn after will mask any
   // overflow visually.
-  function clipRectId(idSuffix, rx, ry, rw, rh) {
+  function clipRectId(
+    idSuffix: string,
+    rx: number,
+    ry: number,
+    rw: number,
+    rh: number,
+  ): SVGClipPathElement {
     const cp = document.createElementNS(SVG_NS, "clipPath");
     cp.setAttribute("id", idSuffix);
     const r = document.createElementNS(SVG_NS, "rect");
-    r.setAttribute("x", rx);
-    r.setAttribute("y", ry);
-    r.setAttribute("width", rw);
-    r.setAttribute("height", rh);
+    set(r, "x", rx);
+    set(r, "y", ry);
+    set(r, "width", rw);
+    set(r, "height", rh);
     cp.appendChild(r);
     return cp;
   }
@@ -203,7 +221,7 @@ export function castle(x, y, w, h) {
   localDefs.appendChild(
     clipRectId(rtClipId, x + towerW + bodyW, towerTop, towerW, h),
   );
-  layers.shapes.appendChild(localDefs);
+  layers.shapes!.appendChild(localDefs);
 
   // Brick fill: instead of tiling a pattern (which causes subtle tile-boundary
   // artifacts where every other row appears thinner), we draw the bricks
@@ -212,13 +230,20 @@ export function castle(x, y, w, h) {
   //   - a single <path> containing every horizontal and vertical grout line,
   //     in absolute coordinates, drawn ONCE — no tile boundaries to worry
   //     about so all rows render identically.
-  function paintBricks(originX, originY, sectionW, sectionH, brickW, clipId) {
+  function paintBricks(
+    originX: number,
+    originY: number,
+    sectionW: number,
+    sectionH: number,
+    brickW: number,
+    clipId: string,
+  ): void {
     // Solid fill — clip to silhouette
     const fillPath = document.createElementNS(SVG_NS, "path");
     fillPath.setAttribute("d", d);
     fillPath.setAttribute("fill", BRICK_FILL);
     fillPath.setAttribute("clip-path", `url(#${clipId})`);
-    layers.shapes.appendChild(fillPath);
+    layers.shapes!.appendChild(fillPath);
 
     // Build grout lines explicitly.  Skip lines that would land exactly on
     // the section's TOP edge (towerTop) or BOTTOM edge (groundY) — those
@@ -257,12 +282,12 @@ export function castle(x, y, w, h) {
     const groutPath = document.createElementNS(SVG_NS, "path");
     groutPath.setAttribute("d", grout);
     groutPath.setAttribute("stroke", BRICK_GROUT);
-    groutPath.setAttribute("stroke-width", LINE_W);
+    set(groutPath, "stroke-width", LINE_W);
     groutPath.setAttribute("stroke-linecap", "round");
     groutPath.setAttribute("stroke-linejoin", "round");
     groutPath.setAttribute("fill", "none");
     groutPath.setAttribute("clip-path", `url(#${clipId})`);
-    layers.shapes.appendChild(groutPath);
+    layers.shapes!.appendChild(groutPath);
   }
 
   paintBricks(x, towerTop, towerW, h, towerBrickW, ltClipId);
@@ -280,15 +305,19 @@ export function castle(x, y, w, h) {
   // in user-space coordinates, going dark → transparent → dark across its
   // full width.  At 50% black opacity the effect is subtle but clearly
   // suggests cylindrical shading.
-  function makeTowerGradient(id, x0, x1) {
+  function makeTowerGradient(
+    id: string,
+    x0: number,
+    x1: number,
+  ): SVGLinearGradientElement {
     const g = document.createElementNS(SVG_NS, "linearGradient");
     g.setAttribute("id", id);
     g.setAttribute("gradientUnits", "userSpaceOnUse");
-    g.setAttribute("x1", x0);
-    g.setAttribute("y1", 0);
-    g.setAttribute("x2", x1);
-    g.setAttribute("y2", 0);
-    const stops = [
+    set(g, "x1", x0);
+    set(g, "y1", 0);
+    set(g, "x2", x1);
+    set(g, "y2", 0);
+    const stops: [number, string, number][] = [
       [0, "#000", 0.18],
       [0.5, "#000", 0.0],
       [1, "#000", 0.18],
@@ -297,7 +326,7 @@ export function castle(x, y, w, h) {
       const s = document.createElementNS(SVG_NS, "stop");
       s.setAttribute("offset", `${offset * 100}%`);
       s.setAttribute("stop-color", color);
-      s.setAttribute("stop-opacity", opacity);
+      set(s, "stop-opacity", opacity);
       g.appendChild(s);
     }
     return g;
@@ -309,12 +338,12 @@ export function castle(x, y, w, h) {
     makeTowerGradient(rightGradId, x + towerW + bodyW, x + w),
   );
 
-  function towerOverlayClipped(clipId, gradId) {
+  function towerOverlayClipped(clipId: string, gradId: string): void {
     const p = document.createElementNS(SVG_NS, "path");
     p.setAttribute("d", d);
     p.setAttribute("fill", `url(#${gradId})`);
     p.setAttribute("clip-path", `url(#${clipId})`);
-    layers.shapes.appendChild(p);
+    layers.shapes!.appendChild(p);
   }
   towerOverlayClipped(ltClipId, leftGradId);
   towerOverlayClipped(rtClipId, rightGradId);
@@ -322,7 +351,7 @@ export function castle(x, y, w, h) {
   // Outer outline — drawn AFTER bricks AND gradient so it sits on top.
   // Per user request: thinner outline weight (LINE_W * 0.85) since the tower
   // gradient now does most of the visual delineation.
-  layers.shapes.appendChild(
+  layers.shapes!.appendChild(
     svgPath(d, {
       fill: "none",
       stroke: CASTLE_STROKE,
@@ -336,7 +365,7 @@ export function castle(x, y, w, h) {
   const leftSeamX = x + towerW;
   const rightSeamX = x + towerW + bodyW;
   for (const sx of [leftSeamX, rightSeamX]) {
-    layers.shapes.appendChild(
+    layers.shapes!.appendChild(
       svgLine(sx, bodyTop, sx, groundY, {
         stroke: CASTLE_STROKE,
         strokeWidth: LINE_W * 0.85,
@@ -367,7 +396,7 @@ export function castle(x, y, w, h) {
   // The wood pattern's `patternTransform` translates so x=0 of the tile sits
   // at the seam — both halves anchor from the same seam, so plank dividers
   // line up across.
-  function door(halfClipId, flip) {
+  function door(halfClipId: string, flip: boolean): void {
     // Wood pattern is already in top-level defs; reusing it directly anchors
     // from (0,0) which is wrong.  Make a per-door pattern instance with a
     // shifted patternTransform so x=0 of the tile sits at the seam.
@@ -385,7 +414,7 @@ export function castle(x, y, w, h) {
     path.setAttribute("d", archD);
     path.setAttribute("fill", `url(#${patId})`);
     path.setAttribute("clip-path", `url(#${halfClipId})`);
-    layers.shapes.appendChild(path);
+    layers.shapes!.appendChild(path);
   }
   // Two clip rects: left half from archX to seamX, right half from seamX to archX+archW.
   const dlClipId = uid("doorL");
@@ -414,7 +443,7 @@ export function castle(x, y, w, h) {
   const frameFill = document.createElementNS(SVG_NS, "path");
   frameFill.setAttribute("d", frameD);
   frameFill.setAttribute("fill", BRICK_FILL);
-  layers.shapes.appendChild(frameFill);
+  layers.shapes!.appendChild(frameFill);
 
   // Frame gets a soft inset shadow — light center (the stone color shows
   // through), gentle darkening just inside the outer outline.  Combined
@@ -431,11 +460,11 @@ export function castle(x, y, w, h) {
   for (const [offset, op] of [
     [0, 0.45],
     [0.6, 0.0],
-  ]) {
+  ] as [number, number][]) {
     const s = document.createElementNS(SVG_NS, "stop");
     s.setAttribute("offset", `${offset * 100}%`);
     s.setAttribute("stop-color", "#ffffff");
-    s.setAttribute("stop-opacity", op);
+    set(s, "stop-opacity", op);
     frameHl.appendChild(s);
   }
   localDefs.appendChild(frameHl);
@@ -448,15 +477,15 @@ export function castle(x, y, w, h) {
   frameClip.appendChild(frameClipPath);
   localDefs.appendChild(frameClip);
   const frameHlRect = document.createElementNS(SVG_NS, "rect");
-  frameHlRect.setAttribute("x", fArchX);
-  frameHlRect.setAttribute("y", fArchY);
-  frameHlRect.setAttribute("width", fArchW);
-  frameHlRect.setAttribute("height", groundY - fArchY);
+  set(frameHlRect, "x", fArchX);
+  set(frameHlRect, "y", fArchY);
+  set(frameHlRect, "width", fArchW);
+  set(frameHlRect, "height", groundY - fArchY);
   frameHlRect.setAttribute("fill", `url(#${frameHighlightId})`);
   frameHlRect.setAttribute("clip-path", `url(#${frameClipId})`);
-  layers.shapes.appendChild(frameHlRect);
+  layers.shapes!.appendChild(frameHlRect);
   // Inset shadow on outer edge of the frame
-  applyInsetShadow(layers.shapes, frameD, localDefs, {
+  applyInsetShadow(layers.shapes!, frameD, localDefs, {
     color: "#2a2a2a",
     thickness: frameThickness * 1.2,
     blur: frameThickness * 0.4,
@@ -469,7 +498,7 @@ export function castle(x, y, w, h) {
   // visible.  This darkens just the inside lip of the frame.
   const innerShadowGroup = document.createElementNS(SVG_NS, "g");
   innerShadowGroup.setAttribute("clip-path", `url(#${frameClipId})`);
-  innerShadowGroup.setAttribute("opacity", 0.55);
+  set(innerShadowGroup, "opacity", 0.55);
   // Use a tiny blur for softness
   const innerBlurId = makeInsetShadowFilter(
     localDefs,
@@ -481,12 +510,12 @@ export function castle(x, y, w, h) {
   innerShadowStroke.setAttribute("d", archD);
   innerShadowStroke.setAttribute("fill", "none");
   innerShadowStroke.setAttribute("stroke", "#2a2a2a");
-  innerShadowStroke.setAttribute("stroke-width", frameThickness * 1.0);
+  set(innerShadowStroke, "stroke-width", frameThickness * 1.0);
   innerShadowStroke.setAttribute("stroke-linejoin", "round");
   innerShadowGroup.appendChild(innerShadowStroke);
-  layers.shapes.appendChild(innerShadowGroup);
+  layers.shapes!.appendChild(innerShadowGroup);
 
-  layers.shapes.appendChild(
+  layers.shapes!.appendChild(
     svgPath(frameD, {
       fill: "none",
       stroke: CASTLE_STROKE,
@@ -517,8 +546,6 @@ export function castle(x, y, w, h) {
   const TILE_H = 24;
   let plankD = "";
   // Verticals: divider lines at every PLANK_W from seam outward.
-  // Track plank center positions so we can draw their horizontal joints.
-  const plankCenters = []; // each: { cx, cy_offset } where cy_offset is the joint stagger
   for (let dx = 0; seamX - dx >= archX - PLANK_W; dx += PLANK_W) {
     const px = seamX - dx;
     plankD += `M ${px} ${archY} L ${px} ${groundY} `;
@@ -532,10 +559,14 @@ export function castle(x, y, w, h) {
   // Even-indexed planks: joints at viewport y = TILE_H, 2*TILE_H, 3*TILE_H ...
   // Odd-indexed planks: joints at TILE_H/2, 3*TILE_H/2, 5*TILE_H/2 ...
   // (matches the running-bond stagger from the original pattern.)
-  function plankJoints(plankLeftX, plankRightX, parity) {
+  function plankJoints(
+    plankLeftX: number,
+    plankRightX: number,
+    parity: number,
+  ): string {
     // parity 0 = joints at TILE_H * k for k = 1, 2, 3...
     // parity 1 = joints at TILE_H * (k + 0.5) for k = 0, 1, 2...
-    let d = "";
+    let dStr = "";
     const base = parity === 0 ? 0 : TILE_H * 0.5;
     for (let k = 0; ; k++) {
       const jy = base + k * TILE_H + (parity === 0 ? TILE_H : 0);
@@ -543,9 +574,9 @@ export function castle(x, y, w, h) {
       // (no y-translation in patternTransform, so jy IS the viewport y).
       if (jy >= groundY) break;
       if (jy <= archY) continue;
-      d += `M ${plankLeftX} ${jy} L ${plankRightX} ${jy} `;
+      dStr += `M ${plankLeftX} ${jy} L ${plankRightX} ${jy} `;
     }
-    return d;
+    return dStr;
   }
   // Iterate planks left of seam (n = -1, -2, ...) and right of seam (n = 0, 1, 2, ...)
   // Plank index n: x range [seamX + n * PLANK_W, seamX + (n+1) * PLANK_W]
@@ -567,10 +598,10 @@ export function castle(x, y, w, h) {
   const plankPath = document.createElementNS(SVG_NS, "path");
   plankPath.setAttribute("d", plankD);
   plankPath.setAttribute("stroke", "#4a3520");
-  plankPath.setAttribute("stroke-width", 0.5);
+  set(plankPath, "stroke-width", 0.5);
   plankPath.setAttribute("fill", "none");
   plankPath.setAttribute("clip-path", `url(#${plankClipId})`);
-  layers.shapes.appendChild(plankPath);
+  layers.shapes!.appendChild(plankPath);
 
   // ── Door shadows ──
   // Tunables shared by both shadow systems (inset all-edges + seam linear).
@@ -588,7 +619,7 @@ export function castle(x, y, w, h) {
   // 1. Inset shadow extending from ALL edges of the arch silhouette,
   //    matching the window treatment — emphasizes the arched shape from
   //    every edge (curved top, sides, floor).
-  applyInsetShadow(layers.shapes, archD, localDefs, {
+  applyInsetShadow(layers.shapes!, archD, localDefs, {
     color: DOOR_SHADOW_COLOR,
     thickness: archW * 0.22,
     blur: archW * 0.05,
@@ -605,10 +636,10 @@ export function castle(x, y, w, h) {
   const seamFadeMask = document.createElementNS(SVG_NS, "mask");
   seamFadeMask.setAttribute("id", seamFadeMaskId);
   seamFadeMask.setAttribute("maskUnits", "userSpaceOnUse");
-  seamFadeMask.setAttribute("x", archX);
-  seamFadeMask.setAttribute("y", archY);
-  seamFadeMask.setAttribute("width", archW);
-  seamFadeMask.setAttribute("height", archH);
+  set(seamFadeMask, "x", archX);
+  set(seamFadeMask, "y", archY);
+  set(seamFadeMask, "width", archW);
+  set(seamFadeMask, "height", archH);
   // Mask gradient: black (hidden) at the very top, white (shown) by
   // archY + archH * DOOR_FADE_END_FRAC, then white all the way down.
   // The longer fade range means the seam shadow ramps in gradually rather
@@ -617,16 +648,16 @@ export function castle(x, y, w, h) {
   const seamFadeGrad = document.createElementNS(SVG_NS, "linearGradient");
   seamFadeGrad.setAttribute("id", seamFadeGradId);
   seamFadeGrad.setAttribute("gradientUnits", "userSpaceOnUse");
-  seamFadeGrad.setAttribute("x1", 0);
-  seamFadeGrad.setAttribute("y1", archY);
-  seamFadeGrad.setAttribute("x2", 0);
-  seamFadeGrad.setAttribute("y2", archY + archH);
+  set(seamFadeGrad, "x1", 0);
+  set(seamFadeGrad, "y1", archY);
+  set(seamFadeGrad, "x2", 0);
+  set(seamFadeGrad, "y2", archY + archH);
   for (const [offset, color] of [
     [0, "black"], // top: hidden
     [fadeStart, "black"], // remain hidden up to fadeStart
     [fadeEnd, "white"], // visible by fadeEnd
     [1, "white"], // bottom: visible
-  ]) {
+  ] as [number, string][]) {
     const s = document.createElementNS(SVG_NS, "stop");
     s.setAttribute("offset", `${offset * 100}%`);
     s.setAttribute("stop-color", color);
@@ -634,55 +665,55 @@ export function castle(x, y, w, h) {
   }
   localDefs.appendChild(seamFadeGrad);
   const seamFadeRect = document.createElementNS(SVG_NS, "rect");
-  seamFadeRect.setAttribute("x", archX);
-  seamFadeRect.setAttribute("y", archY);
-  seamFadeRect.setAttribute("width", archW);
-  seamFadeRect.setAttribute("height", archH);
+  set(seamFadeRect, "x", archX);
+  set(seamFadeRect, "y", archY);
+  set(seamFadeRect, "width", archW);
+  set(seamFadeRect, "height", archH);
   seamFadeRect.setAttribute("fill", `url(#${seamFadeGradId})`);
   seamFadeMask.appendChild(seamFadeRect);
   localDefs.appendChild(seamFadeMask);
 
   function doorEdgeGradient(
-    idSuffix,
-    x1,
-    y1,
-    x2,
-    y2,
-    halfClipId,
-    opacity,
-    fadeFrac,
-  ) {
+    idSuffix: string,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    halfClipId: string,
+    opacity: number,
+    fadeFrac: number,
+  ): void {
     const lin = document.createElementNS(SVG_NS, "linearGradient");
     const id = uid(`dooredge-${idSuffix}`);
     lin.setAttribute("id", id);
     lin.setAttribute("gradientUnits", "userSpaceOnUse");
-    lin.setAttribute("x1", x1);
-    lin.setAttribute("y1", y1);
-    lin.setAttribute("x2", x2);
-    lin.setAttribute("y2", y2);
+    set(lin, "x1", x1);
+    set(lin, "y1", y1);
+    set(lin, "x2", x2);
+    set(lin, "y2", y2);
     // Sharp dark at the edge, fading to clear by `fadeFrac` of the way along
     for (const [offset, op] of [
       [0, opacity],
       [fadeFrac, 0],
-    ]) {
+    ] as [number, number][]) {
       const s = document.createElementNS(SVG_NS, "stop");
       s.setAttribute("offset", `${offset * 100}%`);
       s.setAttribute("stop-color", DOOR_SHADOW_COLOR);
-      s.setAttribute("stop-opacity", op);
+      set(s, "stop-opacity", op);
       lin.appendChild(s);
     }
     localDefs.appendChild(lin);
     const r = document.createElementNS(SVG_NS, "rect");
-    r.setAttribute("x", archX);
-    r.setAttribute("y", archY);
-    r.setAttribute("width", archW);
-    r.setAttribute("height", archH);
+    set(r, "x", archX);
+    set(r, "y", archY);
+    set(r, "width", archW);
+    set(r, "height", archH);
     r.setAttribute("fill", `url(#${id})`);
     r.setAttribute("clip-path", `url(#${halfClipId})`);
     // Apply the vertical fade mask so the gradient fades out toward the
     // curved-top region (avoids compounding with the inset shadow there).
     r.setAttribute("mask", `url(#${seamFadeMaskId})`);
-    layers.shapes.appendChild(r);
+    layers.shapes!.appendChild(r);
   }
   // Left door: seam is on the RIGHT edge of the half.  Gradient runs from
   // seam (dark) leftward (clear).  Spread = 0.20 of arch width — chosen value.
@@ -709,7 +740,7 @@ export function castle(x, y, w, h) {
   );
 
   // Outline on top
-  layers.shapes.appendChild(
+  layers.shapes!.appendChild(
     svgPath(archD, {
       fill: "none",
       stroke: CASTLE_STROKE,
@@ -722,32 +753,32 @@ export function castle(x, y, w, h) {
   const handleY = groundY - archH * 0.5;
   const handleR = archW * 0.045;
   const handleInset = archW * 0.1; // distance from seam toward each door's outer edge
-  function doorHandle(cx, cy, r) {
+  function doorHandle(cx: number, cy: number, r: number): void {
     // Thicker gold ring: outer dark-gold stroke, inner highlight stroke
     const ring = document.createElementNS(SVG_NS, "circle");
-    ring.setAttribute("cx", cx);
-    ring.setAttribute("cy", cy);
-    ring.setAttribute("r", r);
+    set(ring, "cx", cx);
+    set(ring, "cy", cy);
+    set(ring, "r", r);
     ring.setAttribute("fill", "none");
     ring.setAttribute("stroke", "#caa030"); // gold body
-    ring.setAttribute("stroke-width", r * 0.45);
-    layers.shapes.appendChild(ring);
+    set(ring, "stroke-width", r * 0.45);
+    layers.shapes!.appendChild(ring);
     // Highlight – inner thin lighter ring for a hint of metallic shine
     const hi = document.createElementNS(SVG_NS, "circle");
-    hi.setAttribute("cx", cx);
-    hi.setAttribute("cy", cy);
-    hi.setAttribute("r", r * 0.85);
+    set(hi, "cx", cx);
+    set(hi, "cy", cy);
+    set(hi, "r", r * 0.85);
     hi.setAttribute("fill", "none");
     hi.setAttribute("stroke", "#f4d65a");
-    hi.setAttribute("stroke-width", r * 0.1);
-    layers.shapes.appendChild(hi);
+    set(hi, "stroke-width", r * 0.1);
+    layers.shapes!.appendChild(hi);
     // Mounting plate: small dark anchor where the ring attaches to the door
     const anchor = document.createElementNS(SVG_NS, "circle");
-    anchor.setAttribute("cx", cx);
-    anchor.setAttribute("cy", cy - r);
-    anchor.setAttribute("r", r * 0.18);
+    set(anchor, "cx", cx);
+    set(anchor, "cy", cy - r);
+    set(anchor, "r", r * 0.18);
     anchor.setAttribute("fill", "#8a6f1c");
-    layers.shapes.appendChild(anchor);
+    layers.shapes!.appendChild(anchor);
   }
   doorHandle(seamX - handleInset, handleY, handleR);
   doorHandle(seamX + handleInset, handleY, handleR);
@@ -780,11 +811,11 @@ export function castle(x, y, w, h) {
   const intPat = document.createElementNS(SVG_NS, "pattern");
   intPat.setAttribute("id", intPatId);
   intPat.setAttribute("patternUnits", "userSpaceOnUse");
-  intPat.setAttribute("width", INTERIOR_BRICK_W);
-  intPat.setAttribute("height", INTERIOR_BRICK_H * 2);
+  set(intPat, "width", INTERIOR_BRICK_W);
+  set(intPat, "height", INTERIOR_BRICK_H * 2);
   const intBg = document.createElementNS(SVG_NS, "rect");
-  intBg.setAttribute("width", INTERIOR_BRICK_W);
-  intBg.setAttribute("height", INTERIOR_BRICK_H * 2);
+  set(intBg, "width", INTERIOR_BRICK_W);
+  set(intBg, "height", INTERIOR_BRICK_H * 2);
   intBg.setAttribute("fill", INTERIOR_BRICK);
   intPat.appendChild(intBg);
   const intMortarD =
@@ -795,28 +826,21 @@ export function castle(x, y, w, h) {
   const intMortar = document.createElementNS(SVG_NS, "path");
   intMortar.setAttribute("d", intMortarD);
   intMortar.setAttribute("stroke", INTERIOR_GROUT);
-  intMortar.setAttribute("stroke-width", LINE_W * 0.6);
+  set(intMortar, "stroke-width", LINE_W * 0.6);
   intMortar.setAttribute("fill", "none");
   intPat.appendChild(intMortar);
   localDefs.appendChild(intPat);
-
-  const innerSqOpts = {
-    fill: WINDOW_BLUE,
-    stroke: WINDOW_OUTLINE,
-    strokeWidth: LINE_W,
-    radius: 0.6,
-  };
 
   // Sill: thicker than before (touches the next row's window top to hide
   // distracting brick between rows), filled with brick gray.
   const sillExtend = sqSize * 0.08; // overhang on each side
   const sillH = sqGap; // = full gap between rows
-  function placeWindow(sx, sy) {
+  function placeWindow(sx: number, sy: number): void {
     // 1. INTERIOR BRICKS — darker bricks visible through the window,
     //    suggesting the wall on the other side.  Draw a filled rect
     //    using the interior brick pattern, contained within the window
     //    bounds (rounded corners match the window radius).
-    layers.shapes.appendChild(
+    layers.shapes!.appendChild(
       svgPath(roundedRectPath(sx, sy, sqSize, sqSize, 0.6), {
         fill: `url(#${intPatId})`,
         stroke: "none",
@@ -826,10 +850,10 @@ export function castle(x, y, w, h) {
     //    the interior bricks ghost through.  Drawn as the standard
     //    window square but with reduced fill opacity.
     const glassRect = svgRect(sx, sy, sqSize, sqSize, WINDOW_BLUE, 0.6);
-    glassRect.setAttribute("opacity", WINDOW_OPACITY);
-    layers.shapes.appendChild(glassRect);
+    set(glassRect, "opacity", WINDOW_OPACITY);
+    layers.shapes!.appendChild(glassRect);
     // 3. Window outline (full opacity) — sits on top of the glass
-    layers.shapes.appendChild(
+    layers.shapes!.appendChild(
       svgPath(roundedRectPath(sx, sy, sqSize, sqSize, 0.6), {
         fill: "none",
         stroke: WINDOW_OUTLINE,
@@ -839,7 +863,7 @@ export function castle(x, y, w, h) {
     // 4. Inset shadow gives a soft frame of darkening just inside the
     //    window edge.
     applyInsetShadow(
-      layers.shapes,
+      layers.shapes!,
       roundedRectPath(sx, sy, sqSize, sqSize, 0.6),
       localDefs,
       {
@@ -854,12 +878,12 @@ export function castle(x, y, w, h) {
     const sillX = sx - sillExtend;
     const sillY = sy + sqSize;
     const sillW = sqSize + sillExtend * 2;
-    layers.shapes.appendChild(
+    layers.shapes!.appendChild(
       svgRect(sillX, sillY, sillW, sillH, BRICK_FILL, 0.3),
     );
     // Gentle inset shadow on the sill — small region, subtle
     applyInsetShadow(
-      layers.shapes,
+      layers.shapes!,
       roundedRectPath(sillX, sillY, sillW, sillH, 0.3),
       localDefs,
       {
@@ -870,7 +894,7 @@ export function castle(x, y, w, h) {
       },
     );
     // Thin outline
-    layers.shapes.appendChild(
+    layers.shapes!.appendChild(
       svgPath(roundedRectPath(sillX, sillY, sillW, sillH, 0.3), {
         fill: "none",
         stroke: CASTLE_STROKE,
