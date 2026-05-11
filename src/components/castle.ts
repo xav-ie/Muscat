@@ -743,55 +743,104 @@ export function castle(x: number, y: number, w: number, h: number): void {
   const WINDOW_BLUE = "#3da5e0"; // deep sky blue base
   const WINDOW_OUTLINE = "#0a3a6b"; // matching dark blue outline
   const WINDOW_OPACITY = 0.65; // semi-transparent — reveals interior bricks
-  // Interior bricks — darker than the outer wall to suggest the inside
-  // of the castle is in shadow.
-  const INTERIOR_BRICK = "#5a5550";
-  const INTERIOR_GROUT = "#3a3835";
-  const INTERIOR_BRICK_W = 5.5; // smaller than outer-wall bricks (perspective)
+  // Interior bricks — nearly black to read as a deep, shadowed cavity
+  // behind the glass.  A faint warm tint keeps the texture from looking
+  // like a flat patch of paint.
+  const INTERIOR_BRICK = "#0a0806";
+  const INTERIOR_GROUT = "#020101";
+  // Outer body bricks are ≈ 5.84 × 4.28 mm.  Shrink both interior axes by
+  // ~70% so the interior bricks look like the same wall seen from further
+  // away.  Previously only the height was reduced, which made interior
+  // bricks read as too wide.
+  const INTERIOR_BRICK_W = 4;
   const INTERIOR_BRICK_H = 3;
 
-  // Build an interior-bricks pattern.  Smaller bricks + darker tone
-  // suggests we're looking THROUGH the window at a wall some distance
-  // inside the castle.
-  const intPatId = uid("bricks-interior");
-  const intPat = document.createElementNS(SVG_NS, "pattern");
-  intPat.setAttribute("id", intPatId);
-  intPat.setAttribute("patternUnits", "userSpaceOnUse");
-  set(intPat, "width", INTERIOR_BRICK_W);
-  set(intPat, "height", INTERIOR_BRICK_H * 2);
-  const intBg = document.createElementNS(SVG_NS, "rect");
-  set(intBg, "width", INTERIOR_BRICK_W);
-  set(intBg, "height", INTERIOR_BRICK_H * 2);
-  intBg.setAttribute("fill", INTERIOR_BRICK);
-  intPat.append(intBg);
-  const intMortarD =
-    svg`M 0 0 L ${INTERIOR_BRICK_W} 0 ` +
-    svg`M 0 ${INTERIOR_BRICK_H} L ${INTERIOR_BRICK_W} ${INTERIOR_BRICK_H} ` +
-    svg`M 0 0 L 0 ${INTERIOR_BRICK_H} ` +
-    svg`M ${INTERIOR_BRICK_W / 2} ${INTERIOR_BRICK_H} L ${INTERIOR_BRICK_W / 2} ${INTERIOR_BRICK_H * 2}`;
-  const intMortar = document.createElementNS(SVG_NS, "path");
-  intMortar.setAttribute("d", intMortarD);
-  intMortar.setAttribute("stroke", INTERIOR_GROUT);
-  set(intMortar, "stroke-width", LINE_W * 0.6);
-  intMortar.setAttribute("fill", "none");
-  intPat.append(intMortar);
-  localDefs.append(intPat);
+  // Horizontal grout lines across the window's full width, one per row
+  // boundary.  Skips the row at y=0 (which would lie on the window border).
+  function interiorHorizontals(sx: number, sy: number, size: number): string {
+    const numberRows = Math.ceil(size / INTERIOR_BRICK_H) + 1;
+    let result = "";
+    for (let r = 1; r < numberRows; r++) {
+      const ry = sy + r * INTERIOR_BRICK_H;
+      if (ry >= sy + size) break;
+      result += svg`M ${sx} ${ry} L ${sx + size} ${ry} `;
+    }
+    return result;
+  }
+
+  // Vertical grout lines for one row of bricks, offset by `rowOffset` for
+  // the running-bond stagger.
+  function interiorRowVerticals(
+    sx: number,
+    size: number,
+    ry0: number,
+    ry1: number,
+    rowOffset: number,
+  ): string {
+    const numberCols = Math.ceil(size / INTERIOR_BRICK_W) + 1;
+    let result = "";
+    for (let c = -1; c <= numberCols; c++) {
+      const vx = sx + rowOffset + c * INTERIOR_BRICK_W;
+      result += svg`M ${vx} ${ry0} L ${vx} ${ry1} `;
+    }
+    return result;
+  }
+
+  // All vertical grout lines for the window — running-bond stagger
+  // alternates the row offset every row.
+  function interiorVerticals(sx: number, sy: number, size: number): string {
+    const numberRows = Math.ceil(size / INTERIOR_BRICK_H) + 1;
+    let result = "";
+    for (let r = 0; r < numberRows; r++) {
+      const ry0 = sy + r * INTERIOR_BRICK_H;
+      const ry1 = ry0 + INTERIOR_BRICK_H;
+      if (ry1 > sy + size) break;
+      const rowOffset = r % 2 === 0 ? 0 : INTERIOR_BRICK_W / 2;
+      result += interiorRowVerticals(sx, size, ry0, ry1, rowOffset);
+    }
+    return result;
+  }
+
+  // Paint interior bricks within one window's bounds, mirroring the outer
+  // castle's explicit-grout approach.  Avoids the every-other-row thin-
+  // line artifact that <pattern>-based tiling suffers from at tile
+  // boundaries.
+  function paintInteriorBricks(sx: number, sy: number, size: number): void {
+    const winClipId = uid("winint");
+    const winClip = document.createElementNS(SVG_NS, "clipPath");
+    winClip.setAttribute("id", winClipId);
+    const winClipPath = document.createElementNS(SVG_NS, "path");
+    winClipPath.setAttribute("d", roundedRectPath(sx, sy, size, size, 0.6));
+    winClip.append(winClipPath);
+    localDefs.append(winClip);
+
+    const fill = svgRect(sx, sy, size, size, INTERIOR_BRICK, 0.6);
+    fill.setAttribute("clip-path", `url(#${winClipId})`);
+    layers.shapes.append(fill);
+
+    const groutPath = document.createElementNS(SVG_NS, "path");
+    groutPath.setAttribute(
+      "d",
+      interiorHorizontals(sx, sy, size) + interiorVerticals(sx, sy, size),
+    );
+    groutPath.setAttribute("stroke", INTERIOR_GROUT);
+    set(groutPath, "stroke-width", LINE_W * 0.6);
+    groutPath.setAttribute("stroke-linecap", "round");
+    groutPath.setAttribute("stroke-linejoin", "round");
+    groutPath.setAttribute("fill", "none");
+    groutPath.setAttribute("clip-path", `url(#${winClipId})`);
+    layers.shapes.append(groutPath);
+  }
 
   // Sill: thicker than before (touches the next row's window top to hide
   // distracting brick between rows), filled with brick gray.
   const sillExtend = sqSize * 0.08; // overhang on each side
   const sillH = sqGap; // = full gap between rows
   function placeWindow(sx: number, sy: number): void {
-    // 1. INTERIOR BRICKS — darker bricks visible through the window,
-    //    suggesting the wall on the other side.  Draw a filled rect
-    //    using the interior brick pattern, contained within the window
-    //    bounds (rounded corners match the window radius).
-    layers.shapes.append(
-      svgPath(roundedRectPath(sx, sy, sqSize, sqSize, 0.6), {
-        fill: `url(#${intPatId})`,
-        stroke: "none",
-      }),
-    );
+    // 1. INTERIOR BRICKS — drawn explicitly (not via <pattern>) so all
+    //    rows render identically, matching the outer castle's brick
+    //    treatment.
+    paintInteriorBricks(sx, sy, sqSize);
     // 2. SEMI-TRANSPARENT GLASS — sky-blue overlay at ~65% opacity, so
     //    the interior bricks ghost through.  Drawn as the standard
     //    window square but with reduced fill opacity.
