@@ -25,6 +25,204 @@ interface AlongInfo {
   segIdx: number;
 }
 
+// ── Pure helpers (hoisted to module scope so they aren't recreated per call)
+
+// Build a meandering spine polyline from (startX, startY) → (endX, endY) with
+// `nSegs` segments; each interior point gets perpendicular jog of magnitude
+// `len * jogFraction * sin(πt)` (envelope keeps endpoints anchored).
+function buildSpine(
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
+  nSegs: number,
+  jogFraction: number,
+): Spine | undefined {
+  const dx = endX - startX,
+    dy = endY - startY;
+  const len = Math.hypot(dx, dy);
+  if (len < 0.1) return undefined;
+  const dirX = dx / len,
+    dirY = dy / len;
+  const perpX = -dirY,
+    perpY = dirX;
+  const jogAmp = len * jogFraction;
+  const pts: Point[] = [[startX, startY]];
+  for (let s = 1; s < nSegs; s++) {
+    const t = s / nSegs;
+    const baseX = startX + dx * t;
+    const baseY = startY + dy * t;
+    const envelope = Math.sin(t * Math.PI);
+    const jog = (rng() - 0.5) * 2 * jogAmp * envelope;
+    pts.push([baseX + perpX * jog, baseY + perpY * jog]);
+  }
+  pts.push([endX, endY]);
+  return { pts, len, dirX, dirY, perpX, perpY };
+}
+
+// Filled tapered-ribbon polygon helper. Builds a polygon path that's
+// `widthAtBaseEnd` wide at the first point and tapers to `widthAtTipEnd`.
+function ribbonPath(
+  pts: Point[],
+  widthAtBaseEnd: number,
+  widthAtTipEnd: number,
+): string {
+  const n = pts.length;
+  if (n < 2) return "";
+  const cumLen = [0];
+  for (let i = 1; i < n; i++) {
+    cumLen.push(
+      cumLen[i - 1] +
+        Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]),
+    );
+  }
+  const total = cumLen[n - 1];
+  if (total < 0.1) return "";
+  const top: Point[] = [],
+    bot: Point[] = [];
+  for (let i = 0; i < n; i++) {
+    const t = cumLen[i] / total;
+    const halfW = (widthAtTipEnd + (widthAtBaseEnd - widthAtTipEnd) * t) * 0.5;
+    let tx: number, ty: number;
+    if (i === 0) {
+      tx = pts[1][0] - pts[0][0];
+      ty = pts[1][1] - pts[0][1];
+    } else if (i === n - 1) {
+      tx = pts[n - 1][0] - pts[n - 2][0];
+      ty = pts[n - 1][1] - pts[n - 2][1];
+    } else {
+      tx = pts[i + 1][0] - pts[i - 1][0];
+      ty = pts[i + 1][1] - pts[i - 1][1];
+    }
+    const tl = Math.hypot(tx, ty) || 1;
+    const nx = -ty / tl,
+      ny = tx / tl;
+    top.push([pts[i][0] + nx * halfW, pts[i][1] + ny * halfW]);
+    bot.push([pts[i][0] - nx * halfW, pts[i][1] - ny * halfW]);
+  }
+  let d = `M ${top[0][0]} ${top[0][1]} `;
+  for (let i = 1; i < n; i++) d += `L ${top[i][0]} ${top[i][1]} `;
+  for (let i = n - 1; i >= 0; i--) d += `L ${bot[i][0]} ${bot[i][1]} `;
+  d += "Z";
+  return d;
+}
+
+// Find the point at fraction t (0..1) along a polyline by arc length, plus
+// the local tangent direction at that point. Used so branches attach to the
+// ACTUAL jagged spine rather than the idealized straight line.
+function pointAlongPolyline(pts: Point[], t: number): AlongInfo | undefined {
+  if (pts.length < 2) return undefined;
+  const cumLen = [0];
+  for (let i = 1; i < pts.length; i++) {
+    cumLen.push(
+      cumLen[i - 1] +
+        Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]),
+    );
+  }
+  const total = cumLen[pts.length - 1];
+  if (total < 1e-6) return undefined;
+  const targetLen = t * total;
+  let i = 1;
+  while (i < pts.length && cumLen[i] < targetLen) i++;
+  if (i >= pts.length) i = pts.length - 1;
+  const segLen = cumLen[i] - cumLen[i - 1];
+  const segT = segLen > 1e-6 ? (targetLen - cumLen[i - 1]) / segLen : 0;
+  const x = pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * segT;
+  const y = pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * segT;
+  // Local tangent: prefer this segment's direction; if it's degenerate
+  // (zero-length), walk outward to find a non-degenerate neighbour.
+  let dx = pts[i][0] - pts[i - 1][0];
+  let dy = pts[i][1] - pts[i - 1][1];
+  let dl = Math.hypot(dx, dy);
+  if (dl < 1e-6) {
+    // Look forward, then backward
+    for (let j = i + 1; j < pts.length; j++) {
+      dx = pts[j][0] - pts[i - 1][0];
+      dy = pts[j][1] - pts[i - 1][1];
+      dl = Math.hypot(dx, dy);
+      if (dl > 1e-6) break;
+    }
+    if (dl < 1e-6) {
+      for (let j = i - 2; j >= 0; j--) {
+        dx = pts[i - 1][0] - pts[j][0];
+        dy = pts[i - 1][1] - pts[j][1];
+        dl = Math.hypot(dx, dy);
+        if (dl > 1e-6) break;
+      }
+    }
+    if (dl < 1e-6) return undefined; // entire polyline degenerate
+  }
+  return { x, y, dirX: dx / dl, dirY: dy / dl, segIdx: i - 1 };
+}
+
+// Counter-clockwise orientation predicate for three points.
+function ccw(
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  cx: number,
+  cy: number,
+): boolean {
+  return (cy - ay) * (bx - ax) > (by - ay) * (cx - ax);
+}
+
+// Segments (p1,p2) and (p3,p4) intersect at non-endpoint points. Endpoint
+// sharing is OK so branches can MEET at points without forming X.
+function segmentsIntersect(
+  p1: Point,
+  p2: Point,
+  p3: Point,
+  p4: Point,
+): boolean {
+  const eps = 1e-6;
+  if (Math.hypot(p1[0] - p3[0], p1[1] - p3[1]) < eps) return false;
+  if (Math.hypot(p1[0] - p4[0], p1[1] - p4[1]) < eps) return false;
+  if (Math.hypot(p2[0] - p3[0], p2[1] - p3[1]) < eps) return false;
+  if (Math.hypot(p2[0] - p4[0], p2[1] - p4[1]) < eps) return false;
+  return (
+    ccw(p1[0], p1[1], p3[0], p3[1], p4[0], p4[1]) !==
+      ccw(p2[0], p2[1], p3[0], p3[1], p4[0], p4[1]) &&
+    ccw(p1[0], p1[1], p2[0], p2[1], p3[0], p3[1]) !==
+      ccw(p1[0], p1[1], p2[0], p2[1], p4[0], p4[1])
+  );
+}
+
+// Test whether a candidate polyline crosses any segment in the existing
+// crack pool. `attachSegIdx` (optional): the index of a pool segment that
+// this candidate is intentionally attaching to — ignored in the cross-test.
+function polylineCrossesPool(
+  polyPts: Point[],
+  pool: CrackSeg[],
+  attachSegIdx?: number,
+): boolean {
+  for (let i = 0; i < polyPts.length - 1; i++) {
+    const a = polyPts[i],
+      b = polyPts[i + 1];
+    for (const [j, seg] of pool.entries()) {
+      if (j === attachSegIdx) continue;
+      if (segmentsIntersect(a, b, [seg.x1, seg.y1], [seg.x2, seg.y2]))
+        return true;
+    }
+  }
+  return false;
+}
+
+// Record a polyline's segments in the pool so future candidates can test
+// against it. Returns the starting index for caller reference.
+function recordPolyline(polyPts: Point[], pool: CrackSeg[]): number {
+  const startIdx = pool.length;
+  for (let i = 0; i < polyPts.length - 1; i++) {
+    pool.push({
+      x1: polyPts[i][0],
+      y1: polyPts[i][1],
+      x2: polyPts[i + 1][0],
+      y2: polyPts[i + 1][1],
+    });
+  }
+  return startIdx;
+}
+
 // Cracked desert — Voronoi cells filled with sand color in slightly varied
 // shades, separated by thin dark cracks along the cell boundaries.  Uses
 // the same wavy-edge machinery so the cracks look like dried-mud fissures
@@ -62,7 +260,7 @@ export function crackedDesert(
     );
     cellGroup.append(path);
   }
-  layers.shapes!.append(cellGroup);
+  layers.shapes.append(cellGroup);
 
   // ── Cell-boundary cracks ─────────────────────────────────────────
   // Thin dark fissures along each cell edge.  Straight segments + miter
@@ -91,7 +289,7 @@ export function crackedDesert(
   crack.setAttribute("stroke-miterlimit", "4");
   crack.setAttribute("fill", "none");
   crack.setAttribute("opacity", "1");
-  layers.shapes!.append(crack);
+  layers.shapes.append(crack);
 
   // ── Intra-cell cracks ────────────────────────────────────────────
   // Each crack is drawn as a FILLED TAPERED RIBBON — a polygon that's
@@ -99,205 +297,9 @@ export function crackedDesert(
   // point at its open inner end.  Recursive natural-looking branching;
   // rejection sampling prevents crack X-shapes.
 
-  // Build the spine as a polyline (start point → meandering segments →
-  // target end).  Returns the points array plus metadata used for
-  // taper calculation and branch growth.
-  function buildSpine(
-    startX: number,
-    startY: number,
-    endX: number,
-    endY: number,
-    nSegs: number,
-    jogFraction: number,
-  ): Spine | null {
-    const dx = endX - startX,
-      dy = endY - startY;
-    const len = Math.hypot(dx, dy);
-    if (len < 0.1) return null;
-    const dirX = dx / len,
-      dirY = dy / len;
-    const perpX = -dirY,
-      perpY = dirX;
-    const jogAmp = len * jogFraction;
-    const pts: Point[] = [[startX, startY]];
-    for (let s = 1; s < nSegs; s++) {
-      const t = s / nSegs;
-      const baseX = startX + dx * t;
-      const baseY = startY + dy * t;
-      const envelope = Math.sin(t * Math.PI);
-      const jog = (rng() - 0.5) * 2 * jogAmp * envelope;
-      pts.push([baseX + perpX * jog, baseY + perpY * jog]);
-    }
-    pts.push([endX, endY]);
-    return { pts, len, dirX, dirY, perpX, perpY };
-  }
-
-  // Filled tapered-ribbon polygon helper (unchanged from before)
-  function ribbonPath(
-    pts: Point[],
-    widthAtBaseEnd: number,
-    widthAtTipEnd: number,
-  ): string {
-    const n = pts.length;
-    if (n < 2) return "";
-    const cumLen = [0];
-    for (let i = 1; i < n; i++) {
-      cumLen.push(
-        cumLen[i - 1] +
-          Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]),
-      );
-    }
-    const total = cumLen[n - 1];
-    if (total < 0.1) return "";
-    const top: Point[] = [],
-      bot: Point[] = [];
-    for (let i = 0; i < n; i++) {
-      const t = cumLen[i] / total;
-      const halfW =
-        (widthAtTipEnd + (widthAtBaseEnd - widthAtTipEnd) * t) * 0.5;
-      let tx: number, ty: number;
-      if (i === 0) {
-        tx = pts[1][0] - pts[0][0];
-        ty = pts[1][1] - pts[0][1];
-      } else if (i === n - 1) {
-        tx = pts[n - 1][0] - pts[n - 2][0];
-        ty = pts[n - 1][1] - pts[n - 2][1];
-      } else {
-        tx = pts[i + 1][0] - pts[i - 1][0];
-        ty = pts[i + 1][1] - pts[i - 1][1];
-      }
-      const tl = Math.hypot(tx, ty) || 1;
-      const nx = -ty / tl,
-        ny = tx / tl;
-      top.push([pts[i][0] + nx * halfW, pts[i][1] + ny * halfW]);
-      bot.push([pts[i][0] - nx * halfW, pts[i][1] - ny * halfW]);
-    }
-    let d = `M ${top[0][0]} ${top[0][1]} `;
-    for (let i = 1; i < n; i++) d += `L ${top[i][0]} ${top[i][1]} `;
-    for (let i = n - 1; i >= 0; i--) d += `L ${bot[i][0]} ${bot[i][1]} `;
-    d += "Z";
-    return d;
-  }
-
-  // Find the point at fraction t (0..1) along a polyline by arc length,
-  // plus the local tangent direction at that point.  Returns
-  // { x, y, dirX, dirY, segIdx } where segIdx is the index of the
-  // segment we landed on.  Used so branches attach to the ACTUAL
-  // jagged spine, not the idealized straight line.
-  function pointAlongPolyline(pts: Point[], t: number): AlongInfo | null {
-    if (pts.length < 2) return null;
-    const cumLen = [0];
-    for (let i = 1; i < pts.length; i++) {
-      cumLen.push(
-        cumLen[i - 1] +
-          Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]),
-      );
-    }
-    const total = cumLen[pts.length - 1];
-    if (total < 1e-6) return null;
-    const targetLen = t * total;
-    let i = 1;
-    while (i < pts.length && cumLen[i] < targetLen) i++;
-    if (i >= pts.length) i = pts.length - 1;
-    const segLen = cumLen[i] - cumLen[i - 1];
-    const segT = segLen > 1e-6 ? (targetLen - cumLen[i - 1]) / segLen : 0;
-    const x = pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * segT;
-    const y = pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * segT;
-    // Local tangent: prefer this segment's direction; if it's degenerate
-    // (zero-length), walk outward to find a non-degenerate neighbour.
-    let dx = pts[i][0] - pts[i - 1][0];
-    let dy = pts[i][1] - pts[i - 1][1];
-    let dl = Math.hypot(dx, dy);
-    if (dl < 1e-6) {
-      // Look forward, then backward
-      for (let j = i + 1; j < pts.length; j++) {
-        dx = pts[j][0] - pts[i - 1][0];
-        dy = pts[j][1] - pts[i - 1][1];
-        dl = Math.hypot(dx, dy);
-        if (dl > 1e-6) break;
-      }
-      if (dl < 1e-6) {
-        for (let j = i - 2; j >= 0; j--) {
-          dx = pts[i - 1][0] - pts[j][0];
-          dy = pts[i - 1][1] - pts[j][1];
-          dl = Math.hypot(dx, dy);
-          if (dl > 1e-6) break;
-        }
-      }
-      if (dl < 1e-6) return null; // entire polyline degenerate
-    }
-    return { x, y, dirX: dx / dl, dirY: dy / dl, segIdx: i - 1 };
-  }
-
-  // ── Rejection sampling — 2D segment intersection test ────────────
-  // Standard CCW-orientation test for whether segments (p1,p2) and
-  // (p3,p4) intersect at non-endpoint points.  Used to reject candidate
-  // crack spines that would cross an existing crack and form an X.
-  function ccw(
-    ax: number,
-    ay: number,
-    bx: number,
-    by: number,
-    cx: number,
-    cy: number,
-  ): boolean {
-    return (cy - ay) * (bx - ax) > (by - ay) * (cx - ax);
-  }
-  function segmentsIntersect(
-    p1: Point,
-    p2: Point,
-    p3: Point,
-    p4: Point,
-  ): boolean {
-    // Endpoint sharing is OK (branches MEET at points without forming X)
-    const eps = 1e-6;
-    if (Math.hypot(p1[0] - p3[0], p1[1] - p3[1]) < eps) return false;
-    if (Math.hypot(p1[0] - p4[0], p1[1] - p4[1]) < eps) return false;
-    if (Math.hypot(p2[0] - p3[0], p2[1] - p3[1]) < eps) return false;
-    if (Math.hypot(p2[0] - p4[0], p2[1] - p4[1]) < eps) return false;
-    return (
-      ccw(p1[0], p1[1], p3[0], p3[1], p4[0], p4[1]) !==
-        ccw(p2[0], p2[1], p3[0], p3[1], p4[0], p4[1]) &&
-      ccw(p1[0], p1[1], p2[0], p2[1], p3[0], p3[1]) !==
-        ccw(p1[0], p1[1], p2[0], p2[1], p4[0], p4[1])
-    );
-  }
-  // Test whether a candidate polyline crosses ANY segment in the existing
-  // crack pool for this cell.  Each entry in `pool` is a {x1,y1,x2,y2}.
-  // `attachSegIdx` (optional): the index of a pool segment that this
-  // candidate is INTENTIONALLY attaching to (its first point sits on
-  // that segment).  Ignored in the cross-test.
-  function polylineCrossesPool(
-    polyPts: Point[],
-    pool: CrackSeg[],
-    attachSegIdx?: number,
-  ): boolean {
-    for (let i = 0; i < polyPts.length - 1; i++) {
-      const a = polyPts[i],
-        b = polyPts[i + 1];
-      for (let j = 0; j < pool.length; j++) {
-        if (j === attachSegIdx) continue;
-        const seg = pool[j];
-        if (segmentsIntersect(a, b, [seg.x1, seg.y1], [seg.x2, seg.y2]))
-          return true;
-      }
-    }
-    return false;
-  }
-  // Record a polyline's segments in the pool so future candidates can
-  // test against it.  Returns the starting index for caller reference.
-  function recordPolyline(polyPts: Point[], pool: CrackSeg[]): number {
-    const startIdx = pool.length;
-    for (let i = 0; i < polyPts.length - 1; i++) {
-      pool.push({
-        x1: polyPts[i][0],
-        y1: polyPts[i][1],
-        x2: polyPts[i + 1][0],
-        y2: polyPts[i + 1][1],
-      });
-    }
-    return startIdx;
-  }
+  // (buildSpine, ribbonPath, pointAlongPolyline, ccw, segmentsIntersect,
+  //  polylineCrossesPool, recordPolyline are pure helpers hoisted to module
+  //  scope at the top of this file.)
 
   // Width of a crack's WIDE (base/connected) end.  Tip end always 0.
   const CRACK_BASE_W = innerWidth;
@@ -556,5 +558,5 @@ export function crackedDesert(
   innerCrack.setAttribute("stroke", "none");
   innerCrack.setAttribute("fill-rule", "nonzero");
   innerCrack.setAttribute("opacity", "1");
-  layers.shapes!.append(innerCrack);
+  layers.shapes.append(innerCrack);
 }

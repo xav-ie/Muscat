@@ -3,6 +3,13 @@ import { random as rng } from "../util/rng.js";
 import { svgPath } from "../svg/primitives.js";
 import { wave } from "./scatter.js";
 
+// Build an SVG path "M x y L x y L x y …" from a list of points.
+function buildEdgePath(pts: [number, number][]): string {
+  let d = `M ${pts[0][0]} ${pts[0][1]} `;
+  for (let i = 1; i < pts.length; i++) d += `L ${pts[i][0]} ${pts[i][1]} `;
+  return d;
+}
+
 // Composite river scene: SAND zone above, MUD zone below, with a meandering
 // blue river band running horizontally across the middle.  The river's edges
 // undulate; flow lines inside suggest current.
@@ -49,7 +56,7 @@ export function riverScene(x: number, y: number, w: number, h: number): void {
     dSand += `L ${topPts[i][0]} ${topPts[i][1]} `;
   }
   dSand += "Z";
-  layers.shapes!.append(svgPath(dSand, { fill: SAND }));
+  layers.shapes.append(svgPath(dSand, { fill: SAND }));
 
   // 2. MUD on bottom — banner bottom up to river bottom edge
   let dMud = `M ${x} ${y + h} L ${x + w} ${y + h} `;
@@ -57,7 +64,7 @@ export function riverScene(x: number, y: number, w: number, h: number): void {
     dMud += `L ${botPts[i][0]} ${botPts[i][1]} `;
   }
   dMud += "Z";
-  layers.shapes!.append(svgPath(dMud, { fill: MUD }));
+  layers.shapes.append(svgPath(dMud, { fill: MUD }));
 
   // 3. RIVER body — between top and bottom edges
   let dRiver = `M ${topPts[0][0]} ${topPts[0][1]} `;
@@ -68,22 +75,17 @@ export function riverScene(x: number, y: number, w: number, h: number): void {
     dRiver += `L ${botPts[i][0]} ${botPts[i][1]} `;
   }
   dRiver += "Z";
-  layers.shapes!.append(svgPath(dRiver, { fill: RIVER_BLUE }));
+  layers.shapes.append(svgPath(dRiver, { fill: RIVER_BLUE }));
 
   // 4. River bank outlines (top and bottom edges of the river)
-  function buildEdgePath(pts: [number, number][]): string {
-    let d = `M ${pts[0][0]} ${pts[0][1]} `;
-    for (let i = 1; i < pts.length; i++) d += `L ${pts[i][0]} ${pts[i][1]} `;
-    return d;
-  }
-  layers.shapes!.append(
+  layers.shapes.append(
     svgPath(buildEdgePath(topPts), {
       fill: "none",
       stroke: DEEP_BLUE,
       strokeWidth: LINE_W,
     }),
   );
-  layers.shapes!.append(
+  layers.shapes.append(
     svgPath(buildEdgePath(botPts), {
       fill: "none",
       stroke: DEEP_BLUE,

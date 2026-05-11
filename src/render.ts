@@ -1,4 +1,4 @@
-import { SVG_NS, LINE_W, board, G, layers } from "./state.js";
+import { SVG_NS, LINE_W, G, layers, getDefs } from "./state.js";
 import { reseed } from "./util/rng.js";
 import { svgPath } from "./svg/primitives.js";
 import { clear, setupLayers, ensureSvgFont } from "./svg/filters.js";
@@ -104,7 +104,7 @@ export function render(): void {
   // Subtle drop shadow under the banner so it reads as a separate object
   // floating above the castle wall.
   const titleShadowId = "title-banner-shadow";
-  if (!document.getElementById(titleShadowId)) {
+  if (!document.querySelector(`#${titleShadowId}`)) {
     const f = document.createElementNS(SVG_NS, "filter");
     f.setAttribute("id", titleShadowId);
     f.setAttribute("x", "-10%");
@@ -137,7 +137,7 @@ export function render(): void {
       merge.append(n);
     }
     f.append(merge);
-    board.querySelector("defs")!.append(f);
+    getDefs().append(f);
   }
   // Banner fill + WHITE border
   const bannerEl = svgPath(bannerPath, {
@@ -146,7 +146,7 @@ export function render(): void {
     strokeWidth: LINE_W * 1.5,
   });
   bannerEl.setAttribute("filter", `url(#${titleShadowId})`);
-  layers.shapes!.append(bannerEl);
+  layers.shapes.append(bannerEl);
   // Title text — Kranky, sized to fit the banner height, centered horizontally
   // within the rectangular body (not extending into the tails).  White text
   // with a subtle dark-purple stroke outline for readability.

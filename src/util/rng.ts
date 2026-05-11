@@ -1,9 +1,10 @@
 // Mulberry32 — small, fast PRNG with good distribution. Same seed → same sequence.
 export function mulberry32(a: number): () => number {
   return function () {
-    a = Math.trunc(a);
-    // eslint-disable-next-line unicorn/prefer-math-trunc -- intentional int32 wrap; Math.trunc would not preserve mulberry32's overflow semantics
-    a = (a + 0x6d_2b_79_f5) | 0;
+    // mulberry32 mixes int32 state. `Math.imul(x, 1)` coerces the result to
+    // a signed 32-bit integer (preserving overflow wrap), matching the
+    // original `(... ) | 0` idiom without tripping unicorn/prefer-math-trunc.
+    a = Math.imul(a + 0x6d_2b_79_f5, 1);
     let t = Math.imul(a ^ (a >>> 15), 1 | a);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;

@@ -5,9 +5,9 @@ export const SVG_NS = "http://www.w3.org/2000/svg";
 // unified.
 export const LINE_W = 0.7;
 
-export const board = document.getElementById(
-  "board",
-) as unknown as SVGSVGElement;
+const boardEl = document.querySelector<SVGSVGElement>("#board");
+if (!boardEl) throw new Error("#board element not found in document");
+export const board = boardEl;
 
 // Global rendering state.
 //   seed:                feeds both the SVG turbulence pattern AND the JS PRNG,
@@ -27,7 +27,37 @@ export const G = {
 //
 // quadlet() temporarily reassigns `layers.shapes` to its own group so child
 // helpers append into the quadlet, then restores it via try/finally.
-export const layers: { shapes: SVGElement | null; text: SVGElement | null } = {
-  shapes: null,
-  text: null,
+//
+// Implemented as accessors backed by private state so reads return non-null
+// `SVGElement` (with a runtime guard against access before setupLayers()),
+// while assignment still works for the swap pattern.
+let _shapes: SVGElement | undefined;
+let _text: SVGElement | undefined;
+
+export const layers = {
+  get shapes(): SVGElement {
+    if (!_shapes)
+      throw new Error("layers.shapes accessed before setupLayers()");
+    return _shapes;
+  },
+  set shapes(el: SVGElement) {
+    _shapes = el;
+  },
+  get text(): SVGElement {
+    if (!_text) throw new Error("layers.text accessed before setupLayers()");
+    return _text;
+  },
+  set text(el: SVGElement) {
+    _text = el;
+  },
 };
+
+// `<defs>` lookup — used by helpers that register filters/clipPaths against
+// the board's top-level defs. Throws if defs is missing (which would mean
+// setupLayers hasn't run yet).
+export function getDefs(): SVGDefsElement {
+  const defs = board.querySelector("defs");
+  if (!defs)
+    throw new Error("board <defs> not found — run setupLayers() first");
+  return defs;
+}

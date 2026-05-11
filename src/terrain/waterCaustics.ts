@@ -1,7 +1,7 @@
 import { layers } from "../state.js";
 import { random as rng } from "../util/rng.js";
 import { poissonDisk } from "../util/poisson.js";
-import { embedCanvasAsImage } from "../util/canvasLayer.js";
+import { embedCanvasAsImage, get2dContext } from "../util/canvasLayer.js";
 
 type RGB = [number, number, number];
 interface LayerCfg {
@@ -52,7 +52,7 @@ export function waterCaustics(
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = get2dContext(canvas);
   const img = ctx.createImageData(W, H);
   const data = img.data;
 
@@ -213,5 +213,5 @@ export function waterCaustics(
   ctx.putImageData(img, 0, 0);
 
   // Embed the canvas as an SVG <image>.
-  embedCanvasAsImage(layers.shapes!, canvas, x, y, w, h);
+  embedCanvasAsImage(layers.shapes, canvas, x, y, w, h);
 }

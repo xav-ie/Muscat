@@ -1,6 +1,14 @@
 import { layers } from "../state.js";
 import { random as rng } from "../util/rng.js";
-import { embedCanvasAsImage } from "../util/canvasLayer.js";
+import { embedCanvasAsImage, get2dContext } from "../util/canvasLayer.js";
+
+// Hermite smoothstep — clamps `t` into [a, b] then maps to a cubic ease curve.
+function smoothstep(a: number, b: number, t: number): number {
+  let x = (t - a) / (b - a);
+  if (x < 0) x = 0;
+  else if (x > 1) x = 1;
+  return x * x * (3 - 2 * x);
+}
 
 // Lava — implements the Voronoi `DistFromEdge` technique from Inigo Quilez
 // / danielilett.com.  For each pixel:
@@ -35,7 +43,7 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = get2dContext(canvas);
   const img = ctx.createImageData(W, H);
   const data = img.data;
 
@@ -215,14 +223,6 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
     return n * (1 / 1.5);
   }
 
-  // Smoothstep helper
-  function smoothstep(a: number, b: number, t: number): number {
-    let x = (t - a) / (b - a);
-    if (x < 0) x = 0;
-    else if (x > 1) x = 1;
-    return x * x * (3 - 2 * x);
-  }
-
   // Height compression: raise raw height to a power > 1.  This makes the
   // height field grow MORE STEEPLY with size, so large rocks get gradients
   // proportional to their size rather than getting drowned out by the
@@ -361,5 +361,5 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   }
   ctx.putImageData(img, 0, 0);
 
-  embedCanvasAsImage(layers.shapes!, canvas, x, y, w, h);
+  embedCanvasAsImage(layers.shapes, canvas, x, y, w, h);
 }

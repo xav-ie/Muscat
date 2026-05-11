@@ -1,4 +1,4 @@
-import { SVG_NS, LINE_W, board, layers } from "../state.js";
+import { SVG_NS, LINE_W, layers, getDefs } from "../state.js";
 import { ICONS } from "../constants.js";
 import { uid } from "../util/uid.js";
 import {
@@ -38,10 +38,10 @@ export function square(
   } = {},
 ): void {
   if (fill && fill !== "none") {
-    layers.shapes!.append(svgRect(x, y, size, size, fill, radius));
+    layers.shapes.append(svgRect(x, y, size, size, fill, radius));
   }
   if (stroke && stroke !== "none") {
-    layers.shapes!.append(
+    layers.shapes.append(
       svgPath(roundedRectPath(x, y, size, size, radius), {
         fill: "none",
         stroke,
@@ -52,17 +52,18 @@ export function square(
 }
 
 // Tint-filter registry — maps a hex color to a filter id that recolors any
-// graphic to that color while preserving its alpha channel.  Used to recolor
+// graphic to that color while preserving its alpha channel. Used to recolor
 // the icon SVGs at render time without baking in colors at build time.
-let __tintRegistry: Map<string, string> | null = null;
+// Cleared (not nulled) between renders so identity stays stable.
+const __tintRegistry = new Map<string, string>();
 
 export function resetTintRegistry(): void {
-  __tintRegistry = null;
+  __tintRegistry.clear();
 }
 
 export function getTintFilterId(color: string): string {
-  __tintRegistry ??= new Map();
-  if (__tintRegistry.has(color)) return __tintRegistry.get(color)!;
+  const cached = __tintRegistry.get(color);
+  if (cached !== undefined) return cached;
   const id = uid(`tint-${color.replace("#", "")}`);
   const filter = document.createElementNS(SVG_NS, "filter");
   filter.setAttribute("id", id);
@@ -80,9 +81,7 @@ export function getTintFilterId(color: string): string {
   composite.setAttribute("operator", "in");
   filter.append(flood);
   filter.append(composite);
-  // Find the SVG's defs (top-level) — assumed to exist by render time
-  const defs = board.querySelector("defs")!;
-  defs.append(filter);
+  getDefs().append(filter);
   __tintRegistry.set(color, id);
   return id;
 }
@@ -98,7 +97,7 @@ export function iconSquare(
   size: number,
   iconKey: string,
   theme: IconTheme,
-  arrowDir: ArrowDir | null | undefined,
+  arrowDir: ArrowDir | undefined,
 ): void {
   // Build the path: a rounded square optionally with a triangular arrow
   // protrusion on one side.  When merged, the arrow becomes part of the
@@ -121,7 +120,7 @@ export function iconSquare(
 
   // Crisp filled underlay (uniform color regardless of grain displacement)
   if (theme.squareFill && theme.squareFill !== "none") {
-    layers.shapes!.append(
+    layers.shapes.append(
       svgPath(path, {
         fill: theme.squareFill,
         stroke: "none",
@@ -139,7 +138,7 @@ export function iconSquare(
     // edge doesn't spike out as a miter point under stroke-linejoin='miter'.
     outlinePath.setAttribute("stroke-linejoin", "round");
     outlinePath.setAttribute("stroke-linecap", "round");
-    layers.shapes!.append(outlinePath);
+    layers.shapes.append(outlinePath);
   }
 
   // Icon image, padded inside the square
@@ -148,5 +147,5 @@ export function iconSquare(
   const dataUrl = `data:image/svg+xml;base64,${ICONS[iconKey]}`;
   const img = svgImage(dataUrl, x + pad, y + pad, iconSize, iconSize);
   img.setAttribute("filter", `url(#${getTintFilterId(theme.iconColor)})`);
-  layers.shapes!.append(img);
+  layers.shapes.append(img);
 }

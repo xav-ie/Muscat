@@ -9,14 +9,18 @@ export function hexToRgb(hex: string): [number, number, number] {
   ];
 }
 
+// Format a single 0-255 channel value as a 2-digit hex string, clamping
+// out-of-range and rounding fractional inputs.
+function channelHex(v: number): string {
+  return Math.max(0, Math.min(255, Math.round(v)))
+    .toString(16)
+    .padStart(2, "0");
+}
+
 // Format an [r, g, b] (or three numeric channels) back to a `#RRGGBB` string,
 // clamping to 0-255 and rounding fractional values.
 export function rgbToHex(r: number, g: number, b: number): string {
-  const h = (v: number) =>
-    Math.max(0, Math.min(255, Math.round(v)))
-      .toString(16)
-      .padStart(2, "0");
-  return `#${h(r)}${h(g)}${h(b)}`;
+  return `#${channelHex(r)}${channelHex(g)}${channelHex(b)}`;
 }
 
 // Multiplicative jitter — scales each RGB channel by 1 ± 12%·strength. Dark

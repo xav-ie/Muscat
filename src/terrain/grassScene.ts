@@ -15,6 +15,28 @@ interface FlowerHue {
 }
 type CrestFn = (px: number) => number;
 
+// Return a function that maps an x-coordinate to its y on the given crest
+// polyline. Useful so callers can pass either a hill-derived sampler or a
+// constant-y lookup (e.g. for the banner top edge).
+function crestYFn(crest: Point[]): CrestFn {
+  return (px: number) => crestYAt(crest, px);
+}
+
+// Sample y at any x along a hill's polyline. Binary search by x then linear
+// interpolate within the bracketing segment.
+function crestYAt(crest: Point[], px: number): number {
+  let lo = 0,
+    hi = crest.length - 1;
+  while (lo < hi - 1) {
+    const mid = (lo + hi) >> 1;
+    if (crest[mid][0] <= px) lo = mid;
+    else hi = mid;
+  }
+  const span = Math.max(1e-6, crest[hi][0] - crest[lo][0]);
+  const t = (px - crest[lo][0]) / span;
+  return crest[lo][1] + (crest[hi][1] - crest[lo][1]) * t;
+}
+
 // One flower: a small dot with a few petals around it.  Rendered as a single
 // filled circle (the bloom) with `petals` smaller circles around it.
 export function flower(cx: number, cy: number, color: string): void {
@@ -30,7 +52,7 @@ export function flower(cx: number, cy: number, color: string): void {
     c.setAttribute("cy", String(py));
     c.setAttribute("r", String(petalR));
     c.setAttribute("fill", color);
-    layers.shapes!.append(c);
+    layers.shapes.append(c);
   }
   // Yellow center dot
   const center = document.createElementNS(SVG_NS, "circle");
@@ -38,7 +60,7 @@ export function flower(cx: number, cy: number, color: string): void {
   center.setAttribute("cy", String(cy));
   center.setAttribute("r", String(petalR * 0.85));
   center.setAttribute("fill", "#f4d65a");
-  layers.shapes!.append(center);
+  layers.shapes.append(center);
 }
 
 // Composite grass scene: a few mounds with tufts cresting them, scattered
@@ -96,28 +118,7 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
   }
 
   function drawHill(hill: Hill): void {
-    layers.shapes!.append(svgPath(hill.d, { fill: hill.color }));
-  }
-
-  // Sample y at any x along a hill's polyline.
-  function crestYAt(crest: Point[], px: number): number {
-    let lo = 0,
-      hi = crest.length - 1;
-    while (lo < hi - 1) {
-      const mid = (lo + hi) >> 1;
-      if (crest[mid][0] <= px) lo = mid;
-      else hi = mid;
-    }
-    const span = Math.max(1e-6, crest[hi][0] - crest[lo][0]);
-    const t = (px - crest[lo][0]) / span;
-    return crest[lo][1] + (crest[hi][1] - crest[lo][1]) * t;
-  }
-
-  // Return a function that takes x and returns y on this crest.
-  // Useful when the "top" of a band is just the banner top (a constant
-  // y), so we don't need a hill polygon to provide the lookup.
-  function crestYFn(crest: Point[]): CrestFn {
-    return (px: number) => crestYAt(crest, px);
+    layers.shapes.append(svgPath(hill.d, { fill: hill.color }));
   }
 
   // Plant tufts across a hill's visible band.  Top edge is this hill's
@@ -133,7 +134,7 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
   // banner border.
   function plantTufts(
     thisCrest: Point[],
-    nextCrest: Point[] | null,
+    nextCrest: Point[] | undefined,
     count: number,
     darkColor: string,
     lightColor: string,
@@ -176,7 +177,7 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
   // Layer 0 (VERY BACK): flat dark-green rectangle filling the entire
   // banner, then dense dark leaves on top of it.  The rectangle covers
   // edge-to-edge so no banner fill shows above the leaves.
-  layers.shapes!.append(svgRect(x, y, w, h, BACKDROP));
+  layers.shapes.append(svgRect(x, y, w, h, BACKDROP));
   plantLeavesInBand(y, crestYFn(backHill.pts), "#1f3e10", "#2e5818", 6500);
 
   // Layer 1: back hill with DENSE grass blades.  Each blade randomly
@@ -191,7 +192,15 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
 
   // Layer 3: front hill — DENSE grass with front striation.
   drawHill(frontHill);
-  plantTufts(frontHill.pts, null, 8000, BLADE_FRONT, HILL_FRONT, 0.85, 1.2);
+  plantTufts(
+    frontHill.pts,
+    undefined,
+    8000,
+    BLADE_FRONT,
+    HILL_FRONT,
+    0.85,
+    1.2,
+  );
 
   // ── Flowers on the front hill (drawn last, on top of all foliage) ──
   const flowerCount = 11;
@@ -253,7 +262,7 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
       el.setAttribute("ry", String(ry));
       el.setAttribute("transform", `rotate(${angle} ${lx} ${ly})`);
       el.setAttribute("fill", color);
-      layers.shapes!.append(el);
+      layers.shapes.append(el);
     }
   }
 }
@@ -297,7 +306,7 @@ export function grassTuftOnGround(
     // shadowed, some are sun-hit), then add small jitter.
     const mixT = Math.pow(rng(), 1.6); // skew toward 0 (dark)
     const baseColor = mixColors(darkColor, lightColor, mixT);
-    layers.shapes!.append(svgPath(d, { fill: jitterColor(baseColor, 0.6) }));
+    layers.shapes.append(svgPath(d, { fill: jitterColor(baseColor, 0.6) }));
   }
 }
 
@@ -315,7 +324,7 @@ export function drawFlower(
   const stemCtrlX = (gx + headX) / 2 + (rng() - 0.5) * 0.5;
   const stemCtrlY = (gy + headY) / 2;
   const stemD = `M ${gx} ${gy} Q ${stemCtrlX} ${stemCtrlY} ${headX} ${headY}`;
-  layers.shapes!.append(
+  layers.shapes.append(
     svgPath(stemD, {
       fill: "none",
       stroke: "#2a5e1a",
@@ -340,7 +349,7 @@ export function drawFlower(
     const deg = (a * 180) / Math.PI + 90;
     ellipse.setAttribute("transform", `rotate(${deg} ${px} ${py})`);
     ellipse.setAttribute("fill", hue.petal);
-    layers.shapes!.append(ellipse);
+    layers.shapes.append(ellipse);
   }
   // 3. Center disc
   const c = document.createElementNS(SVG_NS, "circle");
@@ -348,5 +357,5 @@ export function drawFlower(
   c.setAttribute("cy", String(headY));
   c.setAttribute("r", String(0.75));
   c.setAttribute("fill", hue.center);
-  layers.shapes!.append(c);
+  layers.shapes.append(c);
 }

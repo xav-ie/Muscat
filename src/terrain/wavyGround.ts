@@ -38,5 +38,5 @@ export function wavyGround(
     d += `L ${pts[i][0]} ${pts[i][1]} `;
   }
   d += `L ${x + w} ${y + h} L ${x} ${y + h} Z`;
-  layers.shapes!.append(svgPath(d, { fill: fillColor }));
+  layers.shapes.append(svgPath(d, { fill: fillColor }));
 }

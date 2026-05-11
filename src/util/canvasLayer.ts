@@ -1,5 +1,16 @@
 import { SVG_NS } from "../state.js";
 
+// Get a 2D context from a canvas, throwing if unavailable. The browser only
+// returns null in obscure cases (already-locked context, etc.) — we treat it
+// as a hard error rather than poisoning every caller with null handling.
+export function get2dContext(
+  canvas: HTMLCanvasElement,
+): CanvasRenderingContext2D {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas 2D context unavailable");
+  return ctx;
+}
+
 // Bake an HTMLCanvasElement to a data URL and embed it as an SVG <image>
 // with absolute positioning (preserveAspectRatio='none' so it stretches to
 // the requested rect).  Used by magmaRocks, crackedDesert (no — uses paths),

@@ -20,7 +20,7 @@ export function edgeNumber(
   color: string,
   sizeMm: number,
   align: TextAlign = "middle",
-  outline: TextOutline | null = null,
+  outline?: TextOutline,
 ): void {
   const t = document.createElementNS(SVG_NS, "text");
   t.setAttribute("x", String(x));
@@ -58,5 +58,5 @@ export function edgeNumber(
   } else {
     t.textContent = text;
   }
-  layers.text!.append(t);
+  layers.text.append(t);
 }

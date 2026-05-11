@@ -1,4 +1,4 @@
-import { SVG_NS, LINE_W, board, layers } from "../state.js";
+import { SVG_NS, LINE_W, layers, getDefs } from "../state.js";
 import { uid } from "../util/uid.js";
 import { svgPath, svgRect, roundedRectPath } from "../svg/primitives.js";
 import { magmaRocks } from "./magmaRocks.js";
@@ -57,7 +57,7 @@ export function terrainBanner(
   strokeColor: string,
 ): void {
   // Crisp fill underlay so color stays uniform under any displacement
-  layers.shapes!.append(svgRect(x, y, w, h, fillColor, 2.5));
+  layers.shapes.append(svgRect(x, y, w, h, fillColor, 2.5));
 
   // Set up a clipPath matching the banner's rounded-rect shape so any
   // decoration that draws beyond the banner (e.g. sand Voronoi cells that
@@ -68,7 +68,7 @@ export function terrainBanner(
   const cpPath = document.createElementNS(SVG_NS, "path");
   cpPath.setAttribute("d", roundedRectPath(x, y, w, h, 2.5));
   cp.append(cpPath);
-  board.querySelector("defs")!.append(cp);
+  getDefs().append(cp);
 
   // Decorations live inside a clipped group so they can't escape the
   // banner shape.  Append our clipped group to the current shapesLayer
@@ -78,7 +78,7 @@ export function terrainBanner(
   const clipped = document.createElementNS(SVG_NS, "g");
   clipped.setAttribute("clip-path", `url(#${clipId})`);
   const saved = layers.shapes;
-  saved!.append(clipped);
+  saved.append(clipped);
   layers.shapes = clipped;
   try {
     decorateBanner(s, x, y, w, h);
@@ -87,7 +87,7 @@ export function terrainBanner(
   }
 
   // Outline on top (outside the clip so the stroke's outer half stays visible)
-  layers.shapes!.append(
+  layers.shapes.append(
     svgPath(roundedRectPath(x, y, w, h, 2.5), {
       fill: "none",
       stroke: strokeColor,

@@ -1,16 +1,31 @@
 import { SVG_NS, board, G } from "./state.js";
 import { freshSeed } from "./util/rng.js";
+import { get2dContext } from "./util/canvasLayer.js";
 import { render } from "./render.js";
+
+// Look up an element by CSS selector and verify its runtime type via the
+// element constructor. Throws if the element is missing or the wrong tag.
+// The `ctor` parameter constrains T so it isn't a phantom type parameter.
+function $<T extends Element>(selector: string, ctor: new () => T): T {
+  const el = document.querySelector(selector);
+  if (!el) throw new Error(`required element not found: ${selector}`);
+  if (!(el instanceof ctor)) {
+    throw new TypeError(
+      `${selector} is not a ${ctor.name} (got ${el.constructor.name})`,
+    );
+  }
+  return el;
+}
 
 // ─────────────────────────────────────────────────────────────────────
 // Controls
 // ─────────────────────────────────────────────────────────────────────
-const seedBtn = document.getElementById("reseed") as HTMLButtonElement;
-const exportBtn = document.getElementById("export-png") as HTMLButtonElement;
-const gFreqEl = document.getElementById("grain-freq") as HTMLInputElement;
-const gScaleEl = document.getElementById("grain-scale") as HTMLInputElement;
-const gFreqVal = document.getElementById("grain-freq-val")!;
-const gScaleVal = document.getElementById("grain-scale-val")!;
+const seedBtn = $("#reseed", HTMLButtonElement);
+const exportBtn = $("#export-png", HTMLButtonElement);
+const gFreqEl = $("#grain-freq", HTMLInputElement);
+const gScaleEl = $("#grain-scale", HTMLInputElement);
+const gFreqVal = $("#grain-freq-val", HTMLElement);
+const gScaleVal = $("#grain-scale-val", HTMLElement);
 
 seedBtn.addEventListener("click", () => {
   G.seed = freshSeed();
@@ -27,14 +42,14 @@ gFreqEl.addEventListener("input", () => {
   G.grainFreq = Number.parseFloat(gFreqEl.value);
   gFreqVal.textContent = fmt(G.grainFreq);
   document
-    .getElementById("grain-turb")
+    .querySelector("#grain-turb")
     ?.setAttribute("baseFrequency", String(G.grainFreq));
 });
 gScaleEl.addEventListener("input", () => {
   G.grainScale = Number.parseFloat(gScaleEl.value);
   gScaleVal.textContent = fmt(G.grainScale);
   document
-    .getElementById("grain-disp")
+    .querySelector("#grain-disp")
     ?.setAttribute("scale", String(G.grainScale));
 });
 
@@ -77,17 +92,20 @@ async function exportPng(dpi = 300): Promise<void> {
     const canvas = document.createElement("canvas");
     canvas.width = W;
     canvas.height = H;
-    const ctx = canvas.getContext("2d")!;
+    const ctx = get2dContext(canvas);
     ctx.fillStyle = "#f5e8c4"; // papyrus — matches the on-screen --paper
     ctx.fillRect(0, 0, W, H);
     ctx.drawImage(img, 0, 0, W, H);
 
-    const pngBlob = await new Promise<Blob | null>((res) => {
-      canvas.toBlob(res, "image/png");
+    const pngBlob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((b) => {
+        if (b) resolve(b);
+        else reject(new Error("canvas.toBlob returned null"));
+      }, "image/png");
     });
     const a = document.createElement("a");
     a.download = `board-12x18-${dpi}dpi.png`;
-    a.href = URL.createObjectURL(pngBlob!);
+    a.href = URL.createObjectURL(pngBlob);
     a.click();
     URL.revokeObjectURL(a.href);
   } finally {

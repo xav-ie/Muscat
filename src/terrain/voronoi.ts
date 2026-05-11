@@ -108,9 +108,8 @@ export function voronoiCellsWithWavyEdges(
     for (let i = 0; i < currentSeeds.length; i++) {
       const [sx, sy] = currentSeeds[i];
       let cell: Polygon = [...rect];
-      for (let j = 0; j < currentSeeds.length; j++) {
+      for (const [j, [tx, ty]] of currentSeeds.entries()) {
         if (i === j) continue;
-        const [tx, ty] = currentSeeds[j];
         const mx = (sx + tx) / 2,
           my = (sy + ty) / 2;
         const px = mx - (ty - sy);
@@ -144,19 +143,19 @@ export function voronoiCellsWithWavyEdges(
   function jitterKey(p: Point): string {
     return `${p[0].toFixed(2)},${p[1].toFixed(2)}`;
   }
-  for (const c of cells) {
-    for (const p of c.poly) {
-      const k = jitterKey(p);
-      if (!jitterMap.has(k)) {
-        jitterMap.set(k, [
-          p[0] + (rng() - 0.5) * JITTER,
-          p[1] + (rng() - 0.5) * JITTER,
-        ]);
-      }
-    }
+  function jittered(p: Point): Point {
+    const k = jitterKey(p);
+    const cached = jitterMap.get(k);
+    if (cached) return cached;
+    const fresh: Point = [
+      p[0] + (rng() - 0.5) * JITTER,
+      p[1] + (rng() - 0.5) * JITTER,
+    ];
+    jitterMap.set(k, fresh);
+    return fresh;
   }
   for (const c of cells) {
-    c.poly = c.poly.map((p) => jitterMap.get(jitterKey(p))!);
+    c.poly = c.poly.map((p) => jittered(p));
   }
 
   // 4. Edge-noise cache + helpers
@@ -173,7 +172,8 @@ export function voronoiCellsWithWavyEdges(
   const edgeNoiseCache = new Map<string, Point[]>();
   function getEdgeNoise(a: Point, b: Point): Point[] {
     const k = edgeKey(a, b);
-    if (edgeNoiseCache.has(k)) return edgeNoiseCache.get(k)!;
+    const cached = edgeNoiseCache.get(k);
+    if (cached) return cached;
     const [p, q] = isCanonicalForward(a, b) ? [a, b] : [b, a];
     const dx = q[0] - p[0],
       dy = q[1] - p[1];
