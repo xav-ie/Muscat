@@ -36,6 +36,10 @@ export function createPxCanvas(w: number, h: number, pxPerMm = 4): PxCanvas {
 // with absolute positioning (preserveAspectRatio='none' so it stretches to
 // the requested rect).  Used by magmaRocks, crackedDesert (no — uses paths),
 // waterCaustics — anywhere we rasterize via 2D canvas and embed in the SVG.
+//
+// `mime` lets callers opt into JPEG (e.g. `"image/jpeg"`, with a `quality`
+// 0..1) when the canvas is fully opaque and the encoding cost of PNG is the
+// bottleneck.  PNG stays the default for crisp / low-contrast imagery.
 export function embedCanvasAsImage(
   parent: SVGElement,
   canvas: HTMLCanvasElement,
@@ -43,8 +47,9 @@ export function embedCanvasAsImage(
   y: number,
   w: number,
   h: number,
+  { mime = "image/png", quality }: { mime?: string; quality?: number } = {},
 ): SVGImageElement {
-  const dataURL = canvas.toDataURL("image/png");
+  const dataURL = canvas.toDataURL(mime, quality);
   const imgElement = document.createElementNS(SVG_NS, "image");
   imgElement.setAttribute("x", String(x));
   imgElement.setAttribute("y", String(y));

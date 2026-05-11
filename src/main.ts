@@ -21,31 +21,10 @@ function $<T extends Element>(selector: string, ctor: new () => T): T {
 // ─────────────────────────────────────────────────────────────────────
 const seedButton = $("#reseed", HTMLButtonElement);
 const exportButton = $("#export-png", HTMLButtonElement);
-const gFreqElement = $("#grain-freq", HTMLInputElement);
-const gScaleElement = $("#grain-scale", HTMLInputElement);
-const gFreqValue = $("#grain-freq-val", HTMLElement);
-const gScaleValue = $("#grain-scale-val", HTMLElement);
 
 seedButton.addEventListener("click", () => {
   G.seed = freshSeed();
-  render();
-});
-
-function fmt(v: number): string {
-  return v.toFixed(2);
-}
-
-// Grain sliders update the live filter attributes directly — cheap, doesn't
-// re-shuffle the wobble, just retunes the noise displacement.
-gFreqElement.addEventListener("input", () => {
-  G.grainFreq = Number.parseFloat(gFreqElement.value);
-  gFreqValue.textContent = fmt(G.grainFreq);
-  document.querySelector("#grain-turb")?.setAttribute("baseFrequency", String(G.grainFreq));
-});
-gScaleElement.addEventListener("input", () => {
-  G.grainScale = Number.parseFloat(gScaleElement.value);
-  gScaleValue.textContent = fmt(G.grainScale);
-  document.querySelector("#grain-disp")?.setAttribute("scale", String(G.grainScale));
+  void render();
 });
 
 // Export the SVG as a 12×18 inch PNG at the requested DPI.
@@ -106,11 +85,11 @@ async function exportPng(dpi = 300): Promise<void> {
   } finally {
     URL.revokeObjectURL(url);
     exportButton.disabled = false;
-    exportButton.textContent = "export 12×18 png · 300dpi";
+    exportButton.textContent = "🖼️ export 12×18 png · 300dpi";
   }
 }
 exportButton.addEventListener("click", () => {
   void exportPng(300);
 });
 
-render();
+void render();

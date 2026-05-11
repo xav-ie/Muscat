@@ -13,7 +13,11 @@ import type { IconTheme } from "./components/icon-square.js";
 // ─────────────────────────────────────────────────────────────────────
 // COMPOSE THE BOARD
 // ─────────────────────────────────────────────────────────────────────
-export function render(): void {
+// Async because magma now renders via WebGPU; future grass/water ports
+// will await the same device.  All other terrains are synchronous and
+// finish their DOM writes before the awaited terrains.
+export async function render(): Promise<void> {
+  const t0 = performance.now();
   reseed(G.seed);
   resetTintRegistry();
   clear();
@@ -192,7 +196,9 @@ export function render(): void {
       outline: PAPYRUS,
     };
     quadletRow(contentX, sy, sq, quadCount, contentW, rowTheme);
-    terrainBanner(
+    // Sequential await — terrainBanner mutates `layers.shapes` during its
+    // decoration phase, so two concurrent calls would corrupt the swap.
+    await terrainBanner(
       s,
       contentX,
       bannerY,
@@ -210,4 +216,5 @@ export function render(): void {
     edgeNumber(leftNumberX, bannerMidY, bannerNums[s], "#E31D1D", numberFontSize, "end");
     edgeNumber(rightNumberX, bannerMidY, bannerNums[s], "#E31D1D", numberFontSize, "end");
   }
+  console.log(`render: ${(performance.now() - t0).toFixed(1)} ms`);
 }

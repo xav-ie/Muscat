@@ -8,7 +8,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["node"]
+    "types": ["node", "@webgpu/types"]
   },
   "include": ["build.ts", "src/**/*.ts"]
 }

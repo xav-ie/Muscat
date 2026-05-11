@@ -14,9 +14,8 @@ interface FlowerHue {
 }
 type CrestFunction = (px: number) => number;
 
-// Render resolution for the grass raster. Blades are sub-mm features, so we
-// need denser sampling than the 4 px/mm used by smooth-gradient terrains
-// (magma, water) to keep blades crisp instead of fuzzy.
+// Render resolution.  8 px/mm matches the rasterized terrains and keeps
+// the encoded JPEG compact while still being crisp on Retina screens.
 const PX_PER_MM = 8;
 
 // Return a function that maps an x-coordinate to its y on the given crest
@@ -315,11 +314,11 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
   // mixes between BLADE_BACK and HILL_BACK for visible tonal striation
   // — some blades darker (shadowed), some lighter (sun-hit).
   drawHill(backHill);
-  plantTufts(backHill.pts, midHill.pts, 3000, BLADE_BACK, HILL_BACK, 0.4, 0.6);
+  plantTufts(backHill.pts, midHill.pts, 10_000, BLADE_BACK, HILL_BACK, 0.4, 0.6);
 
   // Layer 2: mid hill — DENSE grass with mid striation.
   drawHill(midHill);
-  plantTufts(midHill.pts, frontHill.pts, 3800, BLADE_MID, HILL_MID, 0.6, 0.85);
+  plantTufts(midHill.pts, frontHill.pts, 8000, BLADE_MID, HILL_MID, 0.6, 0.85);
 
   // Layer 3: front hill — DENSE grass with front striation.
   drawHill(frontHill);
@@ -344,6 +343,12 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
   }
 
   // Single <image> for the whole scene — the rounded-rect clipPath wrapping
-  // this group still trims the image to the banner outline.
-  embedCanvasAsImage(layers.shapes, canvas, x, y, w, h);
+  // this group still trims the image to the banner outline.  JPEG: the
+  // canvas is fully opaque (BACKDROP fillRect underlay) and PNG encoding
+  // dominated grass render time.  Quality 0.9 is visually indistinguishable
+  // from PNG for this organic foliage texture.
+  embedCanvasAsImage(layers.shapes, canvas, x, y, w, h, {
+    mime: "image/jpeg",
+    quality: 0.9,
+  });
 }

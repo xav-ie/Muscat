@@ -55,7 +55,7 @@
       }
       .stage {
         /* 12 x 18 inch aspect ratio */
-        width: min(96vw, calc((100vh - 200px) * 12 / 18));
+        width: min(96vw, calc((100vh - 140px) * 12 / 18));
         aspect-ratio: 12 / 18;
         background: var(--paper);
         box-shadow:
@@ -70,7 +70,7 @@
         display: block;
       }
       .controls {
-        margin-top: 18px;
+        margin-bottom: 18px;
         display: flex;
         gap: 14px;
         align-items: center;
@@ -122,6 +122,11 @@
       <strong>plain svg + grain filter</strong>
     </div>
 
+    <div class="controls">
+      <button id="reseed">🎲 re-roll</button>
+      <button id="export-png">🖼️ export 12×18 png · 300dpi</button>
+    </div>
+
     <div class="stage">
       <svg
         class="board"
@@ -129,26 +134,6 @@
         xmlns="http://www.w3.org/2000/svg"
         id="board"
       ></svg>
-    </div>
-
-    <div class="controls">
-      <label
-        >grain freq
-        <input id="grain-freq" type="range" min="0.1" max="3" step="0.05" value="0.8" /><span
-          id="grain-freq-val"
-          >0.80</span
-        ></label
-      >
-      <label
-        >grain scale
-        <input id="grain-scale" type="range" min="0" max="2" step="0.05" value="0.5" /><span
-          id="grain-scale-val"
-          >0.50</span
-        ></label
-      >
-      <span class="sep">·</span>
-      <button id="reseed">re-roll</button>
-      <button id="export-png">export 12×18 png · 300dpi</button>
     </div>
 
     <script>

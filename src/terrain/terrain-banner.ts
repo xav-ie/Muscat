@@ -9,15 +9,22 @@ import { grassScene } from "./grass-scene.js";
 // Section-index → terrain decoration:
 //   0 lava (magma rocks)         1 cracked desert
 //   2 water caustics             3 grass scene
-const DECORATORS = [magmaRocks, crackedDesert, waterCaustics, grassScene];
+type Decorator = (x: number, y: number, w: number, h: number) => void | Promise<void>;
+const DECORATORS: Decorator[] = [magmaRocks, crackedDesert, waterCaustics, grassScene];
 
-function decorateBanner(s: number, x: number, y: number, w: number, h: number): void {
-  DECORATORS[s]?.(x, y, w, h);
+async function decorateBanner(
+  s: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): Promise<void> {
+  await DECORATORS[s]?.(x, y, w, h);
 }
 
 // Themed terrain banner — a filled rounded rectangle with a colored outline,
 // optionally decorated with terrain ornaments keyed off the section index.
-export function terrainBanner(
+export async function terrainBanner(
   s: number,
   x: number,
   y: number,
@@ -25,7 +32,7 @@ export function terrainBanner(
   h: number,
   fillColor: string,
   strokeColor: string,
-): void {
+): Promise<void> {
   // Crisp fill underlay so color stays uniform under any displacement
   layers.shapes.append(svgRect(x, y, w, h, fillColor, 2.5));
 
@@ -51,7 +58,7 @@ export function terrainBanner(
   saved.append(clipped);
   layers.shapes = clipped;
   try {
-    decorateBanner(s, x, y, w, h);
+    await decorateBanner(s, x, y, w, h);
   } finally {
     layers.shapes = saved;
   }
