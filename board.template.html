@@ -1,37 +1,4 @@
-"""
-Build a rough.js HTML page that draws the board using composable primitives.
-- viewBox in mm (304.8 x 457.2 = 12x18 inch poster)
-- 20mm squares
-- icons embedded as base64 PNG <image> elements
-- primitives: square, iconSquare, arrowTri, quadlet, quadletRow, zigzagBanner, castle
-"""
-import base64
-import json
-from pathlib import Path
-
-UPLOADS = Path("/mnt/user-data/uploads")
-OUT = Path("/home/claude/board_v2.html")
-KRANKY_WOFF2_B64 = base64.b64encode(
-    Path("/home/claude/font_pkg/package/files/kranky-latin-400-normal.woff2").read_bytes()
-).decode()
-
-# Use the user-provided SVG icons.  These are clean red-fill paths on
-# transparent backgrounds, so they're embedded as base64-SVG data URLs and
-# scaled into each square via <image>.
-icon_files = {
-    "jester":  UPLOADS / "jesterhat.svg",
-    "lute":    UPLOADS / "lyre.svg",
-    "feather": UPLOADS / "quill.svg",
-    "crystal": UPLOADS / "crystalball.svg",
-}
-icons_b64 = {}
-for name, path in icon_files.items():
-    icons_b64[name] = base64.b64encode(Path(path).read_bytes()).decode()
-
-icons_json = json.dumps(icons_b64)
-
-# Generate the HTML
-html = r"""<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -3740,9 +3707,3 @@ render();
 </script>
 </body>
 </html>
-"""
-
-html = html.replace("__ICONS__", icons_json)
-html = html.replace("__KRANKY_B64__", KRANKY_WOFF2_B64)
-OUT.write_text(html)
-print(f"Wrote {OUT} ({len(html):,} chars)")
