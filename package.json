@@ -6,10 +6,11 @@
   "scripts": {
     "build": "npm run check:types && tsx build.ts",
     "format": "oxfmt .",
-    "lint:fix": "eslint . --fix",
+    "lint:fix": "eslint . --fix --cache --cache-strategy content --cache-location node_modules/.cache/eslint",
+    "fix": "npm run format && npm run lint:fix",
     "check": "concurrently -c auto 'npm:check:*'",
     "check:format": "oxfmt --check .",
-    "check:lint": "eslint .",
+    "check:lint": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/eslint",
     "check:knip": "knip",
     "check:fallow": "fallow audit",
     "check:types": "tsgo --noEmit"
