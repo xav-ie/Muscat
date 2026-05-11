@@ -53,20 +53,20 @@ export function clipPolygonByHalfplane(
   if (Math.abs(seedSide) < 1e-9) return poly; // seed exactly on line; skip
   const out: Polygon = [];
   const keep = (s: number) => (seedSide > 0 ? s >= 0 : s <= 0);
-  for (let i = 0; i < poly.length; i++) {
-    const cur = poly[i];
-    const nxt = poly[(i + 1) % poly.length];
-    const sCur = side(cur[0], cur[1]);
+  for (let index = 0; index < poly.length; index++) {
+    const current = poly[index];
+    const nxt = poly[(index + 1) % poly.length];
+    const sCurrent = side(current[0], current[1]);
     const sNxt = side(nxt[0], nxt[1]);
-    const curIn = keep(sCur);
+    const currentIn = keep(sCurrent);
     const nxtIn = keep(sNxt);
-    if (curIn) out.push(cur);
-    if (curIn !== nxtIn) {
+    if (currentIn) out.push(current);
+    if (currentIn !== nxtIn) {
       // Compute intersection of segment cur→nxt with the line
-      const t = sCur / (sCur - sNxt);
+      const t = sCurrent / (sCurrent - sNxt);
       out.push([
-        cur[0] + t * (nxt[0] - cur[0]),
-        cur[1] + t * (nxt[1] - cur[1]),
+        current[0] + t * (nxt[0] - current[0]),
+        current[1] + t * (nxt[1] - current[1]),
       ]);
     }
   }
@@ -91,8 +91,8 @@ export function voronoiCellsWithWavyEdges(
   noiseAmp: number,
 ): VoronoiToolkit {
   // 1. Seed distribution via Poisson-disk rejection sampling.
-  const minDist = Math.sqrt((w * h) / count) * 0.55;
-  let seeds: Point[] = poissonDisk(x, y, w, h, minDist, count, rng, 60);
+  const minDistribution = Math.sqrt((w * h) / count) * 0.55;
+  let seeds: Point[] = poissonDisk(x, y, w, h, minDistribution, count, rng, 60);
   const cellW = Math.sqrt((w * h) / count);
   const cellH = cellW;
 
@@ -105,11 +105,11 @@ export function voronoiCellsWithWavyEdges(
 
   function buildCells(currentSeeds: Point[]): VoronoiCell[] {
     const out: VoronoiCell[] = [];
-    for (let i = 0; i < currentSeeds.length; i++) {
-      const [sx, sy] = currentSeeds[i];
+    for (let index = 0; index < currentSeeds.length; index++) {
+      const [sx, sy] = currentSeeds[index];
       let cell: Polygon = [...rect];
-      for (const [j, [tx, ty]] of currentSeeds.entries()) {
-        if (i === j) continue;
+      for (const [index_, [tx, ty]] of currentSeeds.entries()) {
+        if (index === index_) continue;
         const mx = (sx + tx) / 2,
           my = (sy + ty) / 2;
         const px = mx - (ty - sy);
@@ -177,25 +177,25 @@ export function voronoiCellsWithWavyEdges(
     const [p, q] = isCanonicalForward(a, b) ? [a, b] : [b, a];
     const dx = q[0] - p[0],
       dy = q[1] - p[1];
-    const len = Math.hypot(dx, dy);
-    if (len < 0.5) {
+    const length_ = Math.hypot(dx, dy);
+    if (length_ < 0.5) {
       edgeNoiseCache.set(k, []);
       return [];
     }
-    const ux = dx / len,
-      uy = dy / len;
+    const ux = dx / length_,
+      uy = dy / length_;
     const px = -uy,
       py = ux;
-    const amplitude = Math.min(len * noiseAmp, 1.4);
+    const amplitude = Math.min(length_ * noiseAmp, 1.4);
     const N = 4;
     const pts: Point[] = [];
-    for (let i = 1; i <= N; i++) {
-      const t = i / (N + 1);
+    for (let index = 1; index <= N; index++) {
+      const t = index / (N + 1);
       const baseX = p[0] + dx * t;
       const baseY = p[1] + dy * t;
-      const env = Math.sin(t * Math.PI);
+      const environment = Math.sin(t * Math.PI);
       const noise = (rng() - 0.5) * 1.6 + (rng() - 0.5) * 0.6;
-      const offset = noise * amplitude * env;
+      const offset = noise * amplitude * environment;
       pts.push([baseX + px * offset, baseY + py * offset]);
     }
     edgeNoiseCache.set(k, pts);
@@ -204,13 +204,15 @@ export function voronoiCellsWithWavyEdges(
 
   function expandedPolygon(poly: Polygon): Polygon {
     const out: Polygon = [];
-    for (let i = 0; i < poly.length; i++) {
-      const a = poly[i];
-      const b = poly[(i + 1) % poly.length];
+    for (let index = 0; index < poly.length; index++) {
+      const a = poly[index];
+      const b = poly[(index + 1) % poly.length];
       out.push(a);
       const mids = getEdgeNoise(a, b);
       if (isCanonicalForward(a, b)) for (const p of mids) out.push(p);
-      else for (let j = mids.length - 1; j >= 0; j--) out.push(mids[j]);
+      else
+        for (let index = mids.length - 1; index >= 0; index--)
+          out.push(mids[index]);
     }
     return out;
   }
@@ -223,11 +225,14 @@ export function voronoiCellsWithWavyEdges(
       (pts[n - 1][1] + pts[0][1]) / 2,
     ];
     let d = `M ${startMid[0]} ${startMid[1]} `;
-    for (let i = 0; i < n; i++) {
-      const cur = pts[i];
-      const next = pts[(i + 1) % n];
-      const mid: Point = [(cur[0] + next[0]) / 2, (cur[1] + next[1]) / 2];
-      d += `Q ${cur[0]} ${cur[1]} ${mid[0]} ${mid[1]} `;
+    for (let index = 0; index < n; index++) {
+      const current = pts[index];
+      const next = pts[(index + 1) % n];
+      const mid: Point = [
+        (current[0] + next[0]) / 2,
+        (current[1] + next[1]) / 2,
+      ];
+      d += `Q ${current[0]} ${current[1]} ${mid[0]} ${mid[1]} `;
     }
     d += "Z";
     return d;
@@ -239,11 +244,14 @@ export function voronoiCellsWithWavyEdges(
     if (n === 2)
       return `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]} `;
     let d = `M ${pts[0][0]} ${pts[0][1]} `;
-    for (let i = 1; i < n - 1; i++) {
-      const cur = pts[i];
-      const next = pts[i + 1];
-      const mid: Point = [(cur[0] + next[0]) / 2, (cur[1] + next[1]) / 2];
-      d += `Q ${cur[0]} ${cur[1]} ${mid[0]} ${mid[1]} `;
+    for (let index = 1; index < n - 1; index++) {
+      const current = pts[index];
+      const next = pts[index + 1];
+      const mid: Point = [
+        (current[0] + next[0]) / 2,
+        (current[1] + next[1]) / 2,
+      ];
+      d += `Q ${current[0]} ${current[1]} ${mid[0]} ${mid[1]} `;
     }
     d += `L ${pts[n - 1][0]} ${pts[n - 1][1]} `;
     return d;
@@ -256,7 +264,8 @@ export function voronoiCellsWithWavyEdges(
     const n = pts.length;
     if (n < 3) return "";
     let d = `M ${pts[0][0]} ${pts[0][1]} `;
-    for (let i = 1; i < n; i++) d += `L ${pts[i][0]} ${pts[i][1]} `;
+    for (let index = 1; index < n; index++)
+      d += `L ${pts[index][0]} ${pts[index][1]} `;
     d += "Z";
     return d;
   }
@@ -264,7 +273,8 @@ export function voronoiCellsWithWavyEdges(
     const n = pts.length;
     if (n < 2) return "";
     let d = `M ${pts[0][0]} ${pts[0][1]} `;
-    for (let i = 1; i < n; i++) d += `L ${pts[i][0]} ${pts[i][1]} `;
+    for (let index = 1; index < n; index++)
+      d += `L ${pts[index][0]} ${pts[index][1]} `;
     return d;
   }
 

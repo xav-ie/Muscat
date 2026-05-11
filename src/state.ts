@@ -5,9 +5,9 @@ export const SVG_NS = "http://www.w3.org/2000/svg";
 // unified.
 export const LINE_W = 0.7;
 
-const boardEl = document.querySelector<SVGSVGElement>("#board");
-if (!boardEl) throw new Error("#board element not found in document");
-export const board = boardEl;
+const boardElement = document.querySelector<SVGSVGElement>("#board");
+if (!boardElement) throw new Error("#board element not found in document");
+export const board = boardElement;
 
 // Global rendering state.
 //   seed:                feeds both the SVG turbulence pattern AND the JS PRNG,
@@ -40,15 +40,15 @@ export const layers = {
       throw new Error("layers.shapes accessed before setupLayers()");
     return _shapes;
   },
-  set shapes(el: SVGElement) {
-    _shapes = el;
+  set shapes(element: SVGElement) {
+    _shapes = element;
   },
   get text(): SVGElement {
     if (!_text) throw new Error("layers.text accessed before setupLayers()");
     return _text;
   },
-  set text(el: SVGElement) {
-    _text = el;
+  set text(element: SVGElement) {
+    _text = element;
   },
 };
 

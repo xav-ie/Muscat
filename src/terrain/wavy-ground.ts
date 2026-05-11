@@ -21,8 +21,8 @@ export function wavyGround(
   // the bumps look natural (some big, some small).
   const samples = 80;
   const pts: [number, number][] = [];
-  for (let i = 0; i <= samples; i++) {
-    const t = i / samples;
+  for (let index = 0; index <= samples; index++) {
+    const t = index / samples;
     const px = x + t * w;
     const noise =
       Math.sin(t * Math.PI * 2 + 0.4) * 0.55 +
@@ -34,8 +34,8 @@ export function wavyGround(
   // Build path: top wavy edge left-to-right, then down to bottom-right
   // corner, across to bottom-left, close.
   let d = `M ${pts[0][0]} ${pts[0][1]} `;
-  for (let i = 1; i < pts.length; i++) {
-    d += `L ${pts[i][0]} ${pts[i][1]} `;
+  for (let index = 1; index < pts.length; index++) {
+    d += `L ${pts[index][0]} ${pts[index][1]} `;
   }
   d += `L ${x + w} ${y + h} L ${x} ${y + h} Z`;
   layers.shapes.append(svgPath(d, { fill: fillColor }));

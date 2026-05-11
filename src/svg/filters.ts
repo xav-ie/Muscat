@@ -92,9 +92,9 @@ export function setupLayers(): void {
   glow.append(gblur);
   // Composite original sharp graphic on top of the blur
   const merge = document.createElementNS(SVG_NS, "feMerge");
-  for (const ref of ["blurred", "blurred", "SourceGraphic"]) {
+  for (const reference of ["blurred", "blurred", "SourceGraphic"]) {
     const node = document.createElementNS(SVG_NS, "feMergeNode");
-    node.setAttribute("in", ref);
+    node.setAttribute("in", reference);
     merge.append(node);
   }
   glow.append(merge);
@@ -319,8 +319,8 @@ export function setupLayers(): void {
 // for canvas rasterization, only resources reachable from inside the SVG are
 // loaded.  Embedding the font as a base64 data URL keeps the SVG self-contained.
 export function ensureSvgFont(): void {
-  const styleEl = document.createElementNS(SVG_NS, "style");
-  styleEl.textContent = `
+  const styleElement = document.createElementNS(SVG_NS, "style");
+  styleElement.textContent = `
     @font-face {
       font-family: 'Kranky';
       font-style: normal;
@@ -328,5 +328,5 @@ export function ensureSvgFont(): void {
       src: url(data:font/woff2;base64,${KRANKY_B64}) format('woff2');
     }
   `;
-  board.append(styleEl);
+  board.append(styleElement);
 }

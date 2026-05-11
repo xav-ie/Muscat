@@ -25,7 +25,7 @@ export function render(): void {
   const sq = 20; // square size (20mm as specified)
   const quadCount = 5;
   const sectionCount = 4;
-  const numFontSize = 24;
+  const numberFontSize = 24;
 
   // Quadlet rows + zigzag banners share one (wider) content area.  This is what
   // gives the quadlets enough breathing room to read as separate clusters.
@@ -43,9 +43,9 @@ export function render(): void {
   // the content area; right numbers stay right-aligned at the paper edge.
   // Both anchors are right edges of the text — wider numbers like "10" extend
   // further leftward into the margin.
-  const numEdgePad = 4; // gap between number's right edge and content
-  const leftNumX = contentInset - numEdgePad;
-  const rightNumX = W - 6; // 6mm from the right paper edge
+  const numberEdgePad = 4; // gap between number's right edge and content
+  const leftNumberX = contentInset - numberEdgePad;
+  const rightNumberX = W - 6; // 6mm from the right paper edge
 
   // ── Castle (positioned near top of page; banner overlaps it like a
   //    mounted sign).  Drawn FIRST so the title banner renders on top.
@@ -57,9 +57,16 @@ export function render(): void {
   // The left "10" anchors to the CASTLE's left edge (not the wider content
   // area), so it has the same 4mm gap to the castle that "8"/"6"/etc. have to
   // their quadlet rows.  The right "10" stays at the paper-edge anchor.
-  const castleLeftNumX = castleInset - numEdgePad;
-  edgeNumber(castleLeftNumX, castleMidY, "10", "#111", numFontSize, "end");
-  edgeNumber(rightNumX, castleMidY, "10", "#111", numFontSize, "end");
+  const castleLeftNumberX = castleInset - numberEdgePad;
+  edgeNumber(
+    castleLeftNumberX,
+    castleMidY,
+    "10",
+    "#111",
+    numberFontSize,
+    "end",
+  );
+  edgeNumber(rightNumberX, castleMidY, "10", "#111", numberFontSize, "end");
 
   // ── Title banner — drawn AFTER the castle so it overlays the castle wall.
   //    Positioned to hang across the upper portion of the castle like a
@@ -72,14 +79,14 @@ export function render(): void {
   // to the castle wall — more of the banner sits ABOVE the merlon line.
   const titleTop = topMargin + 4 - brickH * 2; // up by 2*brickH
   const titleX = (W - titleW) / 2;
-  const titleTailLen = 10; // how far each pointed tail extends past the body
+  const titleTailLength = 10; // how far each pointed tail extends past the body
   const titleNotch = 6; // depth of the inward V-notch between tails
   const BANNER_FILL = "#5e2a8a"; // medieval purple
   const BANNER_STROKE = "#ffffff"; // white border
   const BANNER_SHADOW = "#2a0a44"; // dark purple inner fold shade
 
   // Banner body extends from titleX..titleX+titleW; the rectangular middle
-  // sits inset from each end by `titleTailLen` so the pointed tails extend
+  // sits inset from each end by `titleTailLength` so the pointed tails extend
   // OUT past the body.  At each end:
   //   * top tail tip = (body-edge ± tailLen, top)
   //   * bottom tail tip = (body-edge ± tailLen, bottom)
@@ -90,8 +97,8 @@ export function render(): void {
   const tL = titleX;
   const tR = titleX + titleW;
   // Body x-range (rectangular middle, between the tail-tip x-positions)
-  const bodyL = tL + titleTailLen;
-  const bodyR = tR - titleTailLen;
+  const bodyL = tL + titleTailLength;
+  const bodyR = tR - titleTailLength;
   // Path: start at top-left tail tip, around clockwise.
   const bannerPath =
     `M ${tL} ${tT} ` + // top-left tail tip
@@ -131,22 +138,22 @@ export function render(): void {
     ct.setAttribute("result", "sh");
     f.append(ct);
     const merge = document.createElementNS(SVG_NS, "feMerge");
-    for (const src of ["sh", "SourceGraphic"]) {
+    for (const source of ["sh", "SourceGraphic"]) {
       const n = document.createElementNS(SVG_NS, "feMergeNode");
-      n.setAttribute("in", src);
+      n.setAttribute("in", source);
       merge.append(n);
     }
     f.append(merge);
     getDefs().append(f);
   }
   // Banner fill + WHITE border
-  const bannerEl = svgPath(bannerPath, {
+  const bannerElement = svgPath(bannerPath, {
     fill: BANNER_FILL,
     stroke: BANNER_STROKE,
     strokeWidth: LINE_W * 1.5,
   });
-  bannerEl.setAttribute("filter", `url(#${titleShadowId})`);
-  layers.shapes.append(bannerEl);
+  bannerElement.setAttribute("filter", `url(#${titleShadowId})`);
+  layers.shapes.append(bannerElement);
   // Title text — Kranky, sized to fit the banner height, centered horizontally
   // within the rectangular body (not extending into the tails).  White text
   // with a subtle dark-purple stroke outline for readability.
@@ -209,22 +216,36 @@ export function render(): void {
     // Edge labels — black for quadlet rows, red for banners.  All same size.
     const quadMidY = sy + quadH / 2;
     const bannerMidY = bannerY + bannerH / 2;
-    edgeNumber(leftNumX, quadMidY, quadletNums[s], "#111", numFontSize, "end");
-    edgeNumber(rightNumX, quadMidY, quadletNums[s], "#111", numFontSize, "end");
     edgeNumber(
-      leftNumX,
-      bannerMidY,
-      bannerNums[s],
-      "#E31D1D",
-      numFontSize,
+      leftNumberX,
+      quadMidY,
+      quadletNums[s],
+      "#111",
+      numberFontSize,
       "end",
     );
     edgeNumber(
-      rightNumX,
+      rightNumberX,
+      quadMidY,
+      quadletNums[s],
+      "#111",
+      numberFontSize,
+      "end",
+    );
+    edgeNumber(
+      leftNumberX,
       bannerMidY,
       bannerNums[s],
       "#E31D1D",
-      numFontSize,
+      numberFontSize,
+      "end",
+    );
+    edgeNumber(
+      rightNumberX,
+      bannerMidY,
+      bannerNums[s],
+      "#E31D1D",
+      numberFontSize,
       "end",
     );
   }

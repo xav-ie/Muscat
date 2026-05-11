@@ -15,9 +15,9 @@ import { svgPath } from "../svg/primitives.js";
 export function grassTuft(cx: number, groundY: number, color: string): void {
   const n = 3 + Math.floor(rng() * 3); // 3-5 blades
   const baseSpread = 1.6; // mm of horizontal spread at ground
-  for (let i = 0; i < n; i++) {
+  for (let index = 0; index < n; index++) {
     // Distribute base x positions along a small horizontal arc
-    const t = (i - (n - 1) / 2) / Math.max(1, n - 1);
+    const t = (index - (n - 1) / 2) / Math.max(1, n - 1);
     const bx = cx + t * baseSpread;
     const by = groundY;
     const height = 2.6 + rng() * 1.8; // 2.6-4.4mm tall
@@ -52,7 +52,7 @@ export function scatterGrass(
   count: number,
 ): void {
   const margin = 4; // keep away from the box edges
-  for (let i = 0; i < count; i++) {
+  for (let index = 0; index < count; index++) {
     const cx = x + margin + rng() * (w - margin * 2);
     // Distribute ground points throughout the banner; blades grow upward
     // from each so the tuft tops lie within the banner.

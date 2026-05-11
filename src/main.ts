@@ -7,27 +7,27 @@ import { render } from "./render.js";
 // element constructor. Throws if the element is missing or the wrong tag.
 // The `ctor` parameter constrains T so it isn't a phantom type parameter.
 function $<T extends Element>(selector: string, ctor: new () => T): T {
-  const el = document.querySelector(selector);
-  if (!el) throw new Error(`required element not found: ${selector}`);
-  if (!(el instanceof ctor)) {
+  const element = document.querySelector(selector);
+  if (!element) throw new Error(`required element not found: ${selector}`);
+  if (!(element instanceof ctor)) {
     throw new TypeError(
-      `${selector} is not a ${ctor.name} (got ${el.constructor.name})`,
+      `${selector} is not a ${ctor.name} (got ${element.constructor.name})`,
     );
   }
-  return el;
+  return element;
 }
 
 // ─────────────────────────────────────────────────────────────────────
 // Controls
 // ─────────────────────────────────────────────────────────────────────
-const seedBtn = $("#reseed", HTMLButtonElement);
-const exportBtn = $("#export-png", HTMLButtonElement);
-const gFreqEl = $("#grain-freq", HTMLInputElement);
-const gScaleEl = $("#grain-scale", HTMLInputElement);
-const gFreqVal = $("#grain-freq-val", HTMLElement);
-const gScaleVal = $("#grain-scale-val", HTMLElement);
+const seedButton = $("#reseed", HTMLButtonElement);
+const exportButton = $("#export-png", HTMLButtonElement);
+const gFreqElement = $("#grain-freq", HTMLInputElement);
+const gScaleElement = $("#grain-scale", HTMLInputElement);
+const gFreqValue = $("#grain-freq-val", HTMLElement);
+const gScaleValue = $("#grain-scale-val", HTMLElement);
 
-seedBtn.addEventListener("click", () => {
+seedButton.addEventListener("click", () => {
   G.seed = freshSeed();
   render();
 });
@@ -38,16 +38,16 @@ function fmt(v: number): string {
 
 // Grain sliders update the live filter attributes directly — cheap, doesn't
 // re-shuffle the wobble, just retunes the noise displacement.
-gFreqEl.addEventListener("input", () => {
-  G.grainFreq = Number.parseFloat(gFreqEl.value);
-  gFreqVal.textContent = fmt(G.grainFreq);
+gFreqElement.addEventListener("input", () => {
+  G.grainFreq = Number.parseFloat(gFreqElement.value);
+  gFreqValue.textContent = fmt(G.grainFreq);
   document
     .querySelector("#grain-turb")
     ?.setAttribute("baseFrequency", String(G.grainFreq));
 });
-gScaleEl.addEventListener("input", () => {
-  G.grainScale = Number.parseFloat(gScaleEl.value);
-  gScaleVal.textContent = fmt(G.grainScale);
+gScaleElement.addEventListener("input", () => {
+  G.grainScale = Number.parseFloat(gScaleElement.value);
+  gScaleValue.textContent = fmt(G.grainScale);
   document
     .querySelector("#grain-disp")
     ?.setAttribute("scale", String(G.grainScale));
@@ -75,8 +75,8 @@ async function exportPng(dpi = 300): Promise<void> {
   const blob = new Blob([xml], { type: "image/svg+xml;charset=utf-8" });
   const url = URL.createObjectURL(blob);
 
-  exportBtn.disabled = true;
-  exportBtn.textContent = "rendering…";
+  exportButton.disabled = true;
+  exportButton.textContent = "rendering…";
   try {
     const img = new Image();
     await new Promise<void>((resolve, reject) => {
@@ -92,10 +92,10 @@ async function exportPng(dpi = 300): Promise<void> {
     const canvas = document.createElement("canvas");
     canvas.width = W;
     canvas.height = H;
-    const ctx = get2dContext(canvas);
-    ctx.fillStyle = "#f5e8c4"; // papyrus — matches the on-screen --paper
-    ctx.fillRect(0, 0, W, H);
-    ctx.drawImage(img, 0, 0, W, H);
+    const context = get2dContext(canvas);
+    context.fillStyle = "#f5e8c4"; // papyrus — matches the on-screen --paper
+    context.fillRect(0, 0, W, H);
+    context.drawImage(img, 0, 0, W, H);
 
     const pngBlob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob((b) => {
@@ -110,11 +110,11 @@ async function exportPng(dpi = 300): Promise<void> {
     URL.revokeObjectURL(a.href);
   } finally {
     URL.revokeObjectURL(url);
-    exportBtn.disabled = false;
-    exportBtn.textContent = "export 12×18 png · 300dpi";
+    exportButton.disabled = false;
+    exportButton.textContent = "export 12×18 png · 300dpi";
   }
 }
-exportBtn.addEventListener("click", () => {
+exportButton.addEventListener("click", () => {
   void exportPng(300);
 });
 

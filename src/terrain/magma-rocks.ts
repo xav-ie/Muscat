@@ -43,8 +43,8 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
-  const ctx = get2dContext(canvas);
-  const img = ctx.createImageData(W, H);
+  const context = get2dContext(canvas);
+  const img = context.createImageData(W, H);
   const data = img.data;
 
   // Cell density expressed as cells per UV (UV is normalized 0..1 across W).
@@ -190,7 +190,7 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   // become ragged & jagged rather than uniformly wobbly.
   // Phases randomized per render so the cragginess pattern doesn't repeat.
   const eph: number[] = [];
-  for (let i = 0; i < 8; i++) eph.push(rng() * Math.PI * 2);
+  for (let index = 0; index < 8; index++) eph.push(rng() * Math.PI * 2);
   function craggyNoise(uvX: number, uvY: number): number {
     // 3 octaves of sin-product noise.  Each octave doubles the frequency
     // and halves the contribution.  Range roughly [-1, 1].
@@ -214,7 +214,7 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   // sees ~6 oscillations along its length → visible wavy bumps.
   // Two octaves at this scale and 2x for organic non-uniform waves.
   const wph: number[] = [];
-  for (let i = 0; i < 8; i++) wph.push(rng() * Math.PI * 2);
+  for (let index = 0; index < 8; index++) wph.push(rng() * Math.PI * 2);
   const wf = cellDensity * 6;
   function wobbleNoise(uvX: number, uvY: number): number {
     const n =
@@ -230,7 +230,7 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   // small rocks read less aggressively shaded; large rocks read more
   // dramatically shaded — both end up with similar shading dynamic range.
   const HEIGHT_POW = 1.5;
-  function heightFn(rawH: number): number {
+  function heightFunction(rawH: number): number {
     if (rawH <= 0) return 0;
     return Math.pow(rawH, HEIGHT_POW);
   }
@@ -257,10 +257,10 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   const LX = -0.55,
     LY = -0.55,
     LZ = 0.62;
-  const lLen = Math.hypot(LX, LY, LZ);
-  const lx = LX / lLen,
-    ly = LY / lLen,
-    lz = LZ / lLen;
+  const lLength = Math.hypot(LX, LY, LZ);
+  const lx = LX / lLength,
+    ly = LY / lLength,
+    lz = LZ / lLength;
 
   // Pre-compute distFromEdge for every pixel.  We need it for normal-map
   // gradient computation (sample neighbors) and for the lava/rock mask.
@@ -268,7 +268,7 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   // cell edges ragged rather than smoothly curved — both the silhouette
   // (where mask transitions) AND the heightmap shading get the raggedness.
   const aspect = H / W;
-  const fieldArr = new Float32Array(W * H);
+  const fieldArray = new Float32Array(W * H);
   for (let py = 0; py < H; py++) {
     for (let px = 0; px < W; px++) {
       const u0 = (px + 0.5) / W;
@@ -281,14 +281,14 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
       //     along edges (matches the desert's wobbly look)
       const perturbation =
         craggyNoise(u0, v0) * cragginess + wobbleNoise(u0, v0) * wobble;
-      fieldArr[py * W + px] = f.dEdge + perturbation;
+      fieldArray[py * W + px] = f.dEdge + perturbation;
     }
   }
 
   // Render with normal-map shading
   for (let py = 0; py < H; py++) {
     for (let px = 0; px < W; px++) {
-      const dEdge = fieldArr[py * W + px];
+      const dEdge = fieldArray[py * W + px];
 
       // Mask: 0 inside lava (dEdge near 0), 1 inside rock (dEdge > thickness).
       // Smoothstep over [thickness, thickness + falloff].
@@ -296,7 +296,7 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
 
       // Heightmap: power-compressed (dEdge - thickness).  Rocks rise up,
       // lava sits flat, but small rocks don't dominate the shading.
-      const heightHere = heightFn(Math.max(0, dEdge - thickness));
+      const heightHere = heightFunction(Math.max(0, dEdge - thickness));
 
       // Compute normal via finite-difference on the height field.
       // dh/dx and dh/dy from neighbor heights (clamp at edges).
@@ -304,10 +304,18 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
         xR = Math.min(W - 1, px + 1);
       const yT = Math.max(0, py - 1),
         yB = Math.min(H - 1, py + 1);
-      const hL = heightFn(Math.max(0, fieldArr[py * W + xL] - thickness));
-      const hR = heightFn(Math.max(0, fieldArr[py * W + xR] - thickness));
-      const hT = heightFn(Math.max(0, fieldArr[yT * W + px] - thickness));
-      const hB = heightFn(Math.max(0, fieldArr[yB * W + px] - thickness));
+      const hL = heightFunction(
+        Math.max(0, fieldArray[py * W + xL] - thickness),
+      );
+      const hR = heightFunction(
+        Math.max(0, fieldArray[py * W + xR] - thickness),
+      );
+      const hT = heightFunction(
+        Math.max(0, fieldArray[yT * W + px] - thickness),
+      );
+      const hB = heightFunction(
+        Math.max(0, fieldArray[yB * W + px] - thickness),
+      );
       // dz/dx ≈ (hR - hL) * heightStrength * cellDensity
       // (cellDensity scales the field gradient back into UV-screen space)
       const dzdx = (hR - hL) * heightStrength * cellDensity * 0.5;
@@ -316,10 +324,10 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
       const nx = -dzdx,
         ny = -dzdy,
         nz = 1;
-      const nLen = Math.hypot(nx, ny, nz);
-      const nxN = nx / nLen,
-        nyN = ny / nLen,
-        nzN = nz / nLen;
+      const nLength = Math.hypot(nx, ny, nz);
+      const nxN = nx / nLength,
+        nyN = ny / nLength,
+        nzN = nz / nLength;
       // Lambertian
       let lambert = nxN * lx + nyN * ly + nzN * lz;
       if (lambert < 0) lambert = 0;
@@ -352,14 +360,14 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
       const g = lavaBase[1] + (rockG - lavaBase[1]) * mask;
       const b = lavaBase[2] + (rockB - lavaBase[2]) * mask;
 
-      const idx = (py * W + px) * 4;
-      data[idx] = Math.max(0, Math.min(255, Math.trunc(r)));
-      data[idx + 1] = Math.max(0, Math.min(255, Math.trunc(g)));
-      data[idx + 2] = Math.max(0, Math.min(255, Math.trunc(b)));
-      data[idx + 3] = 255;
+      const index = (py * W + px) * 4;
+      data[index] = Math.max(0, Math.min(255, Math.trunc(r)));
+      data[index + 1] = Math.max(0, Math.min(255, Math.trunc(g)));
+      data[index + 2] = Math.max(0, Math.min(255, Math.trunc(b)));
+      data[index + 3] = 255;
     }
   }
-  ctx.putImageData(img, 0, 0);
+  context.putImageData(img, 0, 0);
 
   embedCanvasAsImage(layers.shapes, canvas, x, y, w, h);
 }

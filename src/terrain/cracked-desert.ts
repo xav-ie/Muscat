@@ -11,18 +11,18 @@ interface CrackSeg {
 }
 interface Spine {
   pts: Point[];
-  len: number;
-  dirX: number;
-  dirY: number;
+  length_: number;
+  directionX: number;
+  directionY: number;
   perpX: number;
   perpY: number;
 }
 interface AlongInfo {
   x: number;
   y: number;
-  dirX: number;
-  dirY: number;
-  segIdx: number;
+  directionX: number;
+  directionY: number;
+  segIndex: number;
 }
 
 // ── Pure helpers (hoisted to module scope so they aren't recreated per call)
@@ -40,13 +40,13 @@ function buildSpine(
 ): Spine | undefined {
   const dx = endX - startX,
     dy = endY - startY;
-  const len = Math.hypot(dx, dy);
-  if (len < 0.1) return undefined;
-  const dirX = dx / len,
-    dirY = dy / len;
-  const perpX = -dirY,
-    perpY = dirX;
-  const jogAmp = len * jogFraction;
+  const length_ = Math.hypot(dx, dy);
+  if (length_ < 0.1) return undefined;
+  const directionX = dx / length_,
+    directionY = dy / length_;
+  const perpX = -directionY,
+    perpY = directionX;
+  const jogAmp = length_ * jogFraction;
   const pts: Point[] = [[startX, startY]];
   for (let s = 1; s < nSegs; s++) {
     const t = s / nSegs;
@@ -57,7 +57,7 @@ function buildSpine(
     pts.push([baseX + perpX * jog, baseY + perpY * jog]);
   }
   pts.push([endX, endY]);
-  return { pts, len, dirX, dirY, perpX, perpY };
+  return { pts, length_, directionX, directionY, perpX, perpY };
 }
 
 // Filled tapered-ribbon polygon helper. Builds a polygon path that's
@@ -69,40 +69,45 @@ function ribbonPath(
 ): string {
   const n = pts.length;
   if (n < 2) return "";
-  const cumLen = [0];
-  for (let i = 1; i < n; i++) {
-    cumLen.push(
-      cumLen[i - 1] +
-        Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]),
+  const cumLength = [0];
+  for (let index = 1; index < n; index++) {
+    cumLength.push(
+      cumLength[index - 1] +
+        Math.hypot(
+          pts[index][0] - pts[index - 1][0],
+          pts[index][1] - pts[index - 1][1],
+        ),
     );
   }
-  const total = cumLen[n - 1];
+  const total = cumLength[n - 1];
   if (total < 0.1) return "";
   const top: Point[] = [],
     bot: Point[] = [];
-  for (let i = 0; i < n; i++) {
-    const t = cumLen[i] / total;
+  for (let index = 0; index < n; index++) {
+    const t = cumLength[index] / total;
     const halfW = (widthAtTipEnd + (widthAtBaseEnd - widthAtTipEnd) * t) * 0.5;
     let tx: number, ty: number;
-    if (i === 0) {
+    if (index === 0) {
       tx = pts[1][0] - pts[0][0];
       ty = pts[1][1] - pts[0][1];
-    } else if (i === n - 1) {
+    } else if (index === n - 1) {
       tx = pts[n - 1][0] - pts[n - 2][0];
       ty = pts[n - 1][1] - pts[n - 2][1];
     } else {
-      tx = pts[i + 1][0] - pts[i - 1][0];
-      ty = pts[i + 1][1] - pts[i - 1][1];
+      tx = pts[index + 1][0] - pts[index - 1][0];
+      ty = pts[index + 1][1] - pts[index - 1][1];
     }
     const tl = Math.hypot(tx, ty) || 1;
     const nx = -ty / tl,
       ny = tx / tl;
-    top.push([pts[i][0] + nx * halfW, pts[i][1] + ny * halfW]);
-    bot.push([pts[i][0] - nx * halfW, pts[i][1] - ny * halfW]);
+    top.push([pts[index][0] + nx * halfW, pts[index][1] + ny * halfW]);
+    bot.push([pts[index][0] - nx * halfW, pts[index][1] - ny * halfW]);
   }
   let d = `M ${top[0][0]} ${top[0][1]} `;
-  for (let i = 1; i < n; i++) d += `L ${top[i][0]} ${top[i][1]} `;
-  for (let i = n - 1; i >= 0; i--) d += `L ${bot[i][0]} ${bot[i][1]} `;
+  for (let index = 1; index < n; index++)
+    d += `L ${top[index][0]} ${top[index][1]} `;
+  for (let index = n - 1; index >= 0; index--)
+    d += `L ${bot[index][0]} ${bot[index][1]} `;
   d += "Z";
   return d;
 }
@@ -112,47 +117,57 @@ function ribbonPath(
 // ACTUAL jagged spine rather than the idealized straight line.
 function pointAlongPolyline(pts: Point[], t: number): AlongInfo | undefined {
   if (pts.length < 2) return undefined;
-  const cumLen = [0];
-  for (let i = 1; i < pts.length; i++) {
-    cumLen.push(
-      cumLen[i - 1] +
-        Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]),
+  const cumLength = [0];
+  for (let index = 1; index < pts.length; index++) {
+    cumLength.push(
+      cumLength[index - 1] +
+        Math.hypot(
+          pts[index][0] - pts[index - 1][0],
+          pts[index][1] - pts[index - 1][1],
+        ),
     );
   }
-  const total = cumLen[pts.length - 1];
+  const total = cumLength[pts.length - 1];
   if (total < 1e-6) return undefined;
-  const targetLen = t * total;
-  let i = 1;
-  while (i < pts.length && cumLen[i] < targetLen) i++;
-  if (i >= pts.length) i = pts.length - 1;
-  const segLen = cumLen[i] - cumLen[i - 1];
-  const segT = segLen > 1e-6 ? (targetLen - cumLen[i - 1]) / segLen : 0;
-  const x = pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * segT;
-  const y = pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * segT;
+  const targetLength = t * total;
+  let index = 1;
+  while (index < pts.length && cumLength[index] < targetLength) index++;
+  if (index >= pts.length) index = pts.length - 1;
+  const segLength = cumLength[index] - cumLength[index - 1];
+  const segT =
+    segLength > 1e-6 ? (targetLength - cumLength[index - 1]) / segLength : 0;
+  const x = pts[index - 1][0] + (pts[index][0] - pts[index - 1][0]) * segT;
+  const y = pts[index - 1][1] + (pts[index][1] - pts[index - 1][1]) * segT;
   // Local tangent: prefer this segment's direction; if it's degenerate
   // (zero-length), walk outward to find a non-degenerate neighbour.
-  let dx = pts[i][0] - pts[i - 1][0];
-  let dy = pts[i][1] - pts[i - 1][1];
+  let dx = pts[index][0] - pts[index - 1][0];
+  let dy = pts[index][1] - pts[index - 1][1];
   let dl = Math.hypot(dx, dy);
   if (dl < 1e-6) {
     // Look forward, then backward
-    for (let j = i + 1; j < pts.length; j++) {
-      dx = pts[j][0] - pts[i - 1][0];
-      dy = pts[j][1] - pts[i - 1][1];
+    for (let index_ = index + 1; index_ < pts.length; index_++) {
+      dx = pts[index_][0] - pts[index - 1][0];
+      dy = pts[index_][1] - pts[index - 1][1];
       dl = Math.hypot(dx, dy);
       if (dl > 1e-6) break;
     }
     if (dl < 1e-6) {
-      for (let j = i - 2; j >= 0; j--) {
-        dx = pts[i - 1][0] - pts[j][0];
-        dy = pts[i - 1][1] - pts[j][1];
+      for (let index_ = index - 2; index_ >= 0; index_--) {
+        dx = pts[index - 1][0] - pts[index_][0];
+        dy = pts[index - 1][1] - pts[index_][1];
         dl = Math.hypot(dx, dy);
         if (dl > 1e-6) break;
       }
     }
     if (dl < 1e-6) return undefined; // entire polyline degenerate
   }
-  return { x, y, dirX: dx / dl, dirY: dy / dl, segIdx: i - 1 };
+  return {
+    x,
+    y,
+    directionX: dx / dl,
+    directionY: dy / dl,
+    segIndex: index - 1,
+  };
 }
 
 // Counter-clockwise orientation predicate for three points.
@@ -189,18 +204,18 @@ function segmentsIntersect(
 }
 
 // Test whether a candidate polyline crosses any segment in the existing
-// crack pool. `attachSegIdx` (optional): the index of a pool segment that
+// crack pool. `attachSegIndex` (optional): the index of a pool segment that
 // this candidate is intentionally attaching to — ignored in the cross-test.
 function polylineCrossesPool(
   polyPts: Point[],
   pool: CrackSeg[],
-  attachSegIdx?: number,
+  attachSegIndex?: number,
 ): boolean {
-  for (let i = 0; i < polyPts.length - 1; i++) {
-    const a = polyPts[i],
-      b = polyPts[i + 1];
-    for (const [j, seg] of pool.entries()) {
-      if (j === attachSegIdx) continue;
+  for (let index = 0; index < polyPts.length - 1; index++) {
+    const a = polyPts[index],
+      b = polyPts[index + 1];
+    for (const [index_, seg] of pool.entries()) {
+      if (index_ === attachSegIndex) continue;
       if (segmentsIntersect(a, b, [seg.x1, seg.y1], [seg.x2, seg.y2]))
         return true;
     }
@@ -211,16 +226,16 @@ function polylineCrossesPool(
 // Record a polyline's segments in the pool so future candidates can test
 // against it. Returns the starting index for caller reference.
 function recordPolyline(polyPts: Point[], pool: CrackSeg[]): number {
-  const startIdx = pool.length;
-  for (let i = 0; i < polyPts.length - 1; i++) {
+  const startIndex = pool.length;
+  for (let index = 0; index < polyPts.length - 1; index++) {
     pool.push({
-      x1: polyPts[i][0],
-      y1: polyPts[i][1],
-      x2: polyPts[i + 1][0],
-      y2: polyPts[i + 1][1],
+      x1: polyPts[index][0],
+      y1: polyPts[index][1],
+      x2: polyPts[index + 1][0],
+      y2: polyPts[index + 1][1],
     });
   }
-  return startIdx;
+  return startIndex;
 }
 
 // Cracked desert — Voronoi cells filled with sand color in slightly varied
@@ -269,9 +284,9 @@ export function crackedDesert(
   let crackD = "";
   for (const c of v.cells) {
     const poly = c.poly;
-    for (let i = 0; i < poly.length; i++) {
-      const a = poly[i],
-        b = poly[(i + 1) % poly.length];
+    for (let index = 0; index < poly.length; index++) {
+      const a = poly[index],
+        b = poly[(index + 1) % poly.length];
       const k = v.edgeKey(a, b);
       if (seenEdges.has(k)) continue;
       seenEdges.add(k);
@@ -314,18 +329,18 @@ export function crackedDesert(
   // random angles, random lengths.  Each branch decides INDEPENDENTLY
   // (and stochastically) whether to spawn sub-branches.  Some branches
   // are very short stubs; some are nearly as long as the parent.
-  // `attachSegIdx` is the index of the pool segment the branch base
+  // `attachSegIndex` is the index of the pool segment the branch base
   // sits on — that segment is exempt from the rejection cross-test.
   function growBranch(
     baseX: number,
     baseY: number,
-    dirX: number,
-    dirY: number,
+    directionX: number,
+    directionY: number,
     length: number,
     baseW: number,
     depth: number,
     pool: CrackSeg[],
-    attachSegIdx: number,
+    attachSegIndex: number,
   ): void {
     // Hard stop at recursion depth, too-short, or too-thin branches.
     // Wisp-sized branches (below MIN_BRANCH_W) are skipped entirely.
@@ -333,15 +348,15 @@ export function crackedDesert(
     if (
       !Number.isFinite(baseX) ||
       !Number.isFinite(baseY) ||
-      !Number.isFinite(dirX) ||
-      !Number.isFinite(dirY) ||
+      !Number.isFinite(directionX) ||
+      !Number.isFinite(directionY) ||
       !Number.isFinite(length) ||
       !Number.isFinite(baseW)
     )
       return;
 
-    const endX = baseX + dirX * length;
-    const endY = baseY + dirY * length;
+    const endX = baseX + directionX * length;
+    const endY = baseY + directionY * length;
     const segs = Math.max(2, Math.min(5, Math.floor(length * 0.6) + 2));
     const localJog = innerJog * (0.4 + rng() * 0.8);
     const s = buildSpine(baseX, baseY, endX, endY, segs, localJog);
@@ -349,8 +364,8 @@ export function crackedDesert(
 
     // Rejection: candidate may cross any pool segment EXCEPT the parent
     // segment it's attaching to (which it legitimately touches).
-    if (polylineCrossesPool(s.pts, pool, attachSegIdx)) return;
-    const branchStartIdx = recordPolyline(s.pts, pool);
+    if (polylineCrossesPool(s.pts, pool, attachSegIndex)) return;
+    const branchStartIndex = recordPolyline(s.pts, pool);
 
     // Render: pts[0] is the BASE so reverse for ribbonPath (tip-first)
     const reversed = s.pts.toReversed();
@@ -370,7 +385,7 @@ export function crackedDesert(
       if (!along) continue;
       const subBaseX = along.x,
         subBaseY = along.y;
-      const segOffset = along.segIdx; // which segment within this branch
+      const segOffset = along.segIndex; // which segment within this branch
 
       const sideSign = rng() < 0.5 ? -1 : 1;
       const angleFromPerp = (rng() - 0.4) * Math.PI * 0.75;
@@ -379,18 +394,18 @@ export function crackedDesert(
       // Use the LOCAL tangent of the spine at the attach point (not the
       // global branch direction) so the angle is relative to where the
       // spine actually goes locally.
-      const ldx = along.dirX,
-        ldy = along.dirY;
+      const ldx = along.directionX,
+        ldy = along.directionY;
       const lpx = -ldy,
         lpy = ldx;
       const subDx = lpx * sideSign * cosA + ldx * sinA;
       const subDy = lpy * sideSign * cosA + ldy * sinA;
-      const subLen = Math.hypot(subDx, subDy);
-      if (subLen < 1e-6) continue;
+      const subLength = Math.hypot(subDx, subDy);
+      if (subLength < 1e-6) continue;
 
-      const lenRoll = rng();
-      const lenFrac = 0.15 + Math.pow(lenRoll, 1.8) * 0.65;
-      const branchLength = length * lenFrac;
+      const lengthRoll = rng();
+      const lengthFrac = 0.15 + Math.pow(lengthRoll, 1.8) * 0.65;
+      const branchLength = length * lengthFrac;
 
       const localParentW = baseW * (1 - subT);
       const subBaseW = Math.min(localParentW, baseW * (0.55 + rng() * 0.25));
@@ -398,13 +413,13 @@ export function crackedDesert(
       growBranch(
         subBaseX,
         subBaseY,
-        subDx / subLen,
-        subDy / subLen,
+        subDx / subLength,
+        subDy / subLength,
         branchLength,
         subBaseW,
         depth + 1,
         pool,
-        branchStartIdx + segOffset,
+        branchStartIndex + segOffset,
       ); // parent segment we're touching
     }
   }
@@ -447,20 +462,20 @@ export function crackedDesert(
 
     for (let k = 0; k < nCracks; k++) {
       // Pick a target vertex (boundary) — prefer unused, allow retry
-      let vIdx: number,
+      let vIndex: number,
         attempts = 0;
       do {
-        vIdx = Math.floor(rng() * c.poly.length);
+        vIndex = Math.floor(rng() * c.poly.length);
         attempts++;
-      } while (usedVerts.has(vIdx) && attempts < c.poly.length * 2);
+      } while (usedVerts.has(vIndex) && attempts < c.poly.length * 2);
       // If all vertices used (very small polygon), skip extras
-      if (usedVerts.has(vIdx)) continue;
-      const target = c.poly[vIdx];
+      if (usedVerts.has(vIndex)) continue;
+      const target = c.poly[vIndex];
 
       const dxT = target[0] - cx,
         dyT = target[1] - cy;
-      const distT = Math.hypot(dxT, dyT);
-      if (distT < 0.5) continue;
+      const distributionT = Math.hypot(dxT, dyT);
+      if (distributionT < 0.5) continue;
 
       // Start somewhere along centroid→target line, biased toward centroid
       const startFrac = 0.05 + rng() * 0.2;
@@ -486,8 +501,8 @@ export function crackedDesert(
       if (polylineCrossesPool(s.pts, pool)) continue;
 
       // Accept: mark vertex, record segments, draw ribbon
-      usedVerts.add(vIdx);
-      const mainStartIdx = recordPolyline(s.pts, pool);
+      usedVerts.add(vIndex);
+      const mainStartIndex = recordPolyline(s.pts, pool);
       innerD += ribbonPath(s.pts, CRACK_BASE_W, 0);
 
       // ── Branches off this main crack ────────────────────────────
@@ -508,7 +523,7 @@ export function crackedDesert(
         if (!along) continue;
         const branchBaseX = along.x,
           branchBaseY = along.y;
-        const segOffset = along.segIdx;
+        const segOffset = along.segIndex;
 
         // Side: first branch picks freely; second branch prefers opposite
         let sideSign: number;
@@ -519,8 +534,8 @@ export function crackedDesert(
           sideSign = rng() < 0.7 ? -firstSide : firstSide;
         }
         // Angle relative to local spine tangent (not idealized direction)
-        const ldx = along.dirX,
-          ldy = along.dirY;
+        const ldx = along.directionX,
+          ldy = along.directionY;
         const lpx = -ldy,
           lpy = ldx;
         const angleFromPerp = (rng() - 0.4) * Math.PI * 0.7;
@@ -531,9 +546,9 @@ export function crackedDesert(
         const blen = Math.hypot(bx, by);
         if (blen < 1e-6) continue;
 
-        const lenRoll = rng();
-        const lenFrac = 0.2 + Math.pow(lenRoll, 1.7) * 0.55;
-        const branchLength = s.len * lenFrac;
+        const lengthRoll = rng();
+        const lengthFrac = 0.2 + Math.pow(lengthRoll, 1.7) * 0.55;
+        const branchLength = s.length_ * lengthFrac;
 
         const localW = CRACK_BASE_W * branchT * (0.7 + rng() * 0.3);
 
@@ -546,7 +561,7 @@ export function crackedDesert(
           localW,
           0,
           pool,
-          mainStartIdx + segOffset,
+          mainStartIndex + segOffset,
         );
       }
     }

@@ -6,7 +6,10 @@ import {
   svgLine,
   roundedRectPath,
 } from "../svg/primitives.js";
-import { applyInsetShadow, makeInsetShadowFilter } from "../svg/inset-shadow.js";
+import {
+  applyInsetShadow,
+  makeInsetShadowFilter,
+} from "../svg/inset-shadow.js";
 import { edgeNumber } from "./edge-number.js";
 
 // Castle at the top of the board.
@@ -14,8 +17,8 @@ import { edgeNumber } from "./edge-number.js";
 // Many setAttribute calls in this file pass numbers; this wraps them via
 // String() at the call site. Hoisted to module scope so it isn't recreated
 // per render.
-function set(el: Element, k: string, v: string | number): void {
-  el.setAttribute(k, String(v));
+function set(element: Element, k: string, v: string | number): void {
+  element.setAttribute(k, String(v));
 }
 
 // Built from primitives: an outer silhouette path, an arch, and inner squares.
@@ -50,14 +53,14 @@ export function castle(x: number, y: number, w: number, h: number): void {
     const merlonY = topY; // top of merlon
     const crenelY = topY + merlonH; // floor of crenel
     const pts: [number, number][] = [];
-    for (let i = 0; i < segCount; i++) {
-      const segStart = x0 + i * segW;
+    for (let index = 0; index < segCount; index++) {
+      const segStart = x0 + index * segW;
       const segEnd = segStart + segW;
-      const isMerlon = i % 2 === 0;
+      const isMerlon = index % 2 === 0;
       const ey = isMerlon ? merlonY : crenelY;
-      if (i === 0) pts.push([segStart, ey]);
+      if (index === 0) pts.push([segStart, ey]);
       pts.push([segEnd, ey]);
-      if (i < segCount - 1) {
+      if (index < segCount - 1) {
         pts.push([segEnd, isMerlon ? crenelY : merlonY]); // vertical step
       }
     }
@@ -252,8 +255,8 @@ export function castle(x: number, y: number, w: number, h: number): void {
     // the section's TOP edge (towerTop) or BOTTOM edge (groundY) — those
     // overlap the silhouette outline and produce visible artifacts.  Same
     // stroke width as every other line in the design (LINE_W).
-    const numRows = Math.ceil(sectionH / brickH) + 1;
-    const numCols = Math.ceil(sectionW / brickW) + 1;
+    const numberRows = Math.ceil(sectionH / brickH) + 1;
+    const numberCols = Math.ceil(sectionW / brickW) + 1;
     const sectionBottomY = originY + sectionH;
     // Tiny inset from each edge so the bricks don't paint right on the
     // silhouette outline (which causes doubled-stroke artifacts).
@@ -261,7 +264,7 @@ export function castle(x: number, y: number, w: number, h: number): void {
     let grout = "";
     // Horizontal lines: one BETWEEN each pair of brick rows.  Skip r=0
     // (= section top) and skip any line at or beyond the section bottom.
-    for (let r = 1; r < numRows; r++) {
+    for (let r = 1; r < numberRows; r++) {
       const ry = originY + r * brickH;
       if (ry >= sectionBottomY - edgeInset) break;
       grout += `M ${originX} ${ry} L ${originX + sectionW} ${ry} `;
@@ -271,13 +274,13 @@ export function castle(x: number, y: number, w: number, h: number): void {
     // verticals in the bottom partial row — they'd touch the silhouette
     // outline at sectionBottomY and produce an artifact band along the
     // bottom edge mirroring what we already fixed at the top.
-    for (let r = 0; r < numRows; r++) {
+    for (let r = 0; r < numberRows; r++) {
       const ry0 = originY + r * brickH;
       const ry1 = ry0 + brickH;
       // Stop if this row's bottom would land at or below the section bottom.
       if (ry1 > sectionBottomY - edgeInset) break;
       const rowOffset = r % 2 === 0 ? 0 : brickW / 2;
-      for (let c = -1; c <= numCols; c++) {
+      for (let c = -1; c <= numberCols; c++) {
         const vx = originX + rowOffset + c * brickW;
         grout += `M ${vx} ${ry0} L ${vx} ${ry1} `;
       }
@@ -402,14 +405,14 @@ export function castle(x: number, y: number, w: number, h: number): void {
     // from (0,0) which is wrong.  Make a per-door pattern instance with a
     // shifted patternTransform so x=0 of the tile sits at the seam.
     const patId = uid("wood-" + (flip ? "r" : "l"));
-    const ref = document.createElementNS(SVG_NS, "pattern");
-    ref.setAttribute("id", patId);
-    ref.setAttribute("href", "#wood");
+    const reference = document.createElementNS(SVG_NS, "pattern");
+    reference.setAttribute("id", patId);
+    reference.setAttribute("href", "#wood");
     // For the left half: pattern's x=0 should land at the seam, which means
     // translating the tile origin to (seamX, 0).  For the right half: same
     // (so the first divider on the inner edge is at the seam).
-    ref.setAttribute("patternTransform", `translate(${seamX} 0)`);
-    localDefs.append(ref);
+    reference.setAttribute("patternTransform", `translate(${seamX} 0)`);
+    localDefs.append(reference);
 
     const path = document.createElementNS(SVG_NS, "path");
     path.setAttribute("d", archD);
@@ -567,7 +570,7 @@ export function castle(x: number, y: number, w: number, h: number): void {
   ): string {
     // parity 0 = joints at TILE_H * k for k = 1, 2, 3...
     // parity 1 = joints at TILE_H * (k + 0.5) for k = 0, 1, 2...
-    let dStr = "";
+    let dString = "";
     const base = parity === 0 ? 0 : TILE_H * 0.5;
     for (let k = 0; ; k++) {
       const jy = base + k * TILE_H + (parity === 0 ? TILE_H : 0);
@@ -575,9 +578,9 @@ export function castle(x: number, y: number, w: number, h: number): void {
       // (no y-translation in patternTransform, so jy IS the viewport y).
       if (jy >= groundY) break;
       if (jy <= archY) continue;
-      dStr += `M ${plankLeftX} ${jy} L ${plankRightX} ${jy} `;
+      dString += `M ${plankLeftX} ${jy} L ${plankRightX} ${jy} `;
     }
-    return dStr;
+    return dString;
   }
   // Iterate planks left of seam (n = -1, -2, ...) and right of seam (n = 0, 1, 2, ...)
   // Plank index n: x range [seamX + n * PLANK_W, seamX + (n+1) * PLANK_W]

@@ -8,7 +8,7 @@ import {
   roundedRectPath,
   squareWithArrowPath,
 } from "../svg/primitives.js";
-import type { ArrowDir } from "../svg/primitives.js";
+import type { ArrowDirection } from "../svg/primitives.js";
 
 export interface IconTheme {
   squareFill: string;
@@ -97,7 +97,7 @@ export function iconSquare(
   size: number,
   iconKey: string,
   theme: IconTheme,
-  arrowDir: ArrowDir | undefined,
+  arrowDirection: ArrowDirection | undefined,
 ): void {
   // Build the path: a rounded square optionally with a triangular arrow
   // protrusion on one side.  When merged, the arrow becomes part of the
@@ -106,15 +106,15 @@ export function iconSquare(
   // it can't visually disconnect from it under the grain filter's edge
   // displacement).
   const radius = 1.5;
-  const arrowLen = arrowDir ? size * 0.18 : 0; // matches the gap inside quadlet()
-  const arrowHalf = arrowLen * 0.75;
+  const arrowLength = arrowDirection ? size * 0.18 : 0; // matches the gap inside quadlet()
+  const arrowHalf = arrowLength * 0.75;
   const path = squareWithArrowPath(
     x,
     y,
     size,
     radius,
-    arrowDir,
-    arrowLen,
+    arrowDirection,
+    arrowLength,
     arrowHalf,
   );
 

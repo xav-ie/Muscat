@@ -52,8 +52,8 @@ export function waterCaustics(
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
-  const ctx = get2dContext(canvas);
-  const img = ctx.createImageData(W, H);
+  const context = get2dContext(canvas);
+  const img = context.createImageData(W, H);
   const data = img.data;
 
   // ── Two-layer caustics ──────────────────────────────────────────────
@@ -83,8 +83,8 @@ export function waterCaustics(
   // Build a Voronoi field (seeds + grid + smoothness) for one layer.
   function buildField(cfg: LayerCfg): Field {
     const cellSpacing = Math.sqrt((W * H) / cfg.count);
-    const minDist = cellSpacing * 0.55;
-    const seeds = poissonDisk(0, 0, W, H, minDist, cfg.count, rng, 80);
+    const minDistribution = cellSpacing * 0.55;
+    const seeds = poissonDisk(0, 0, W, H, minDistribution, cfg.count, rng, 80);
     const bucketSize = cellSpacing;
     const gridCols = Math.ceil(W / bucketSize) + 1;
     const gridRows = Math.ceil(H / bucketSize) + 1;
@@ -203,14 +203,14 @@ export function waterCaustics(
       g = g + (fieldWhite.color[1] - g) * mWhite;
       b = b + (fieldWhite.color[2] - b) * mWhite;
 
-      const idx = (py * W + px) * 4;
-      data[idx] = Math.trunc(r);
-      data[idx + 1] = Math.trunc(g);
-      data[idx + 2] = Math.trunc(b);
-      data[idx + 3] = 255;
+      const index = (py * W + px) * 4;
+      data[index] = Math.trunc(r);
+      data[index + 1] = Math.trunc(g);
+      data[index + 2] = Math.trunc(b);
+      data[index + 3] = 255;
     }
   }
-  ctx.putImageData(img, 0, 0);
+  context.putImageData(img, 0, 0);
 
   // Embed the canvas as an SVG <image>.
   embedCanvasAsImage(layers.shapes, canvas, x, y, w, h);

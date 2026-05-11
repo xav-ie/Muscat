@@ -1,7 +1,7 @@
 import { SVG_NS, layers } from "../state.js";
 import { iconSquare } from "./icon-square.js";
 import type { IconTheme } from "./icon-square.js";
-import type { ArrowDir } from "../svg/primitives.js";
+import type { ArrowDirection } from "../svg/primitives.js";
 
 // One quadlet: 2x2 grid of icon squares with 4 directional arrows in the gaps
 // indicating a cyclic reading flow:  TL → TR → BR → BL → TL  (clockwise)
@@ -26,7 +26,7 @@ export function quadlet(
   // destination square's edge — no bleed past — because the arrow can't
   // visually disconnect from its source under grain-filter displacement
   // (they're the same path).  Cyclic flow TL→TR→BR→BL→TL:
-  const arrowDirs: ArrowDir[][] = [
+  const arrowDirections: ArrowDirection[][] = [
     ["right", "down"], // row 0: TL points right, TR points down
     ["up", "left"], // row 1: BL points up,    BR points left
   ];
@@ -51,7 +51,7 @@ export function quadlet(
           sq,
           iconKeys[r][c],
           theme,
-          arrowDirs[r][c],
+          arrowDirections[r][c],
         );
       }
     }
@@ -73,7 +73,7 @@ export function quadletRow(
   const quadW = sq * 2 + sq * 0.18; // matches gap inside quadlet()
   const totalQuad = quadW * count;
   const gap = (spanW - totalQuad) / (count - 1);
-  for (let i = 0; i < count; i++) {
-    quadlet(x + i * (quadW + gap), y, sq, theme);
+  for (let index = 0; index < count; index++) {
+    quadlet(x + index * (quadW + gap), y, sq, theme);
   }
 }

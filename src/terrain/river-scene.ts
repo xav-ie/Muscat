@@ -6,7 +6,8 @@ import { wave } from "./scatter.js";
 // Build an SVG path "M x y L x y L x y …" from a list of points.
 function buildEdgePath(pts: [number, number][]): string {
   let d = `M ${pts[0][0]} ${pts[0][1]} `;
-  for (let i = 1; i < pts.length; i++) d += `L ${pts[i][0]} ${pts[i][1]} `;
+  for (let index = 1; index < pts.length; index++)
+    d += `L ${pts[index][0]} ${pts[index][1]} `;
   return d;
 }
 
@@ -44,35 +45,35 @@ export function riverScene(x: number, y: number, w: number, h: number): void {
   const samples = 60;
   const topPts: [number, number][] = [],
     botPts: [number, number][] = [];
-  for (let i = 0; i <= samples; i++) {
-    const px = x + (i / samples) * w;
+  for (let index = 0; index <= samples; index++) {
+    const px = x + (index / samples) * w;
     topPts.push([px, riverEdgeY(-1, px)]);
     botPts.push([px, riverEdgeY(1, px)]);
   }
 
   // 1. SAND on top — a polygon from banner top to river top edge
   let dSand = `M ${x} ${y} L ${x + w} ${y} `;
-  for (let i = topPts.length - 1; i >= 0; i--) {
-    dSand += `L ${topPts[i][0]} ${topPts[i][1]} `;
+  for (let index = topPts.length - 1; index >= 0; index--) {
+    dSand += `L ${topPts[index][0]} ${topPts[index][1]} `;
   }
   dSand += "Z";
   layers.shapes.append(svgPath(dSand, { fill: SAND }));
 
   // 2. MUD on bottom — banner bottom up to river bottom edge
   let dMud = `M ${x} ${y + h} L ${x + w} ${y + h} `;
-  for (let i = botPts.length - 1; i >= 0; i--) {
-    dMud += `L ${botPts[i][0]} ${botPts[i][1]} `;
+  for (let index = botPts.length - 1; index >= 0; index--) {
+    dMud += `L ${botPts[index][0]} ${botPts[index][1]} `;
   }
   dMud += "Z";
   layers.shapes.append(svgPath(dMud, { fill: MUD }));
 
   // 3. RIVER body — between top and bottom edges
   let dRiver = `M ${topPts[0][0]} ${topPts[0][1]} `;
-  for (let i = 1; i < topPts.length; i++) {
-    dRiver += `L ${topPts[i][0]} ${topPts[i][1]} `;
+  for (let index = 1; index < topPts.length; index++) {
+    dRiver += `L ${topPts[index][0]} ${topPts[index][1]} `;
   }
-  for (let i = botPts.length - 1; i >= 0; i--) {
-    dRiver += `L ${botPts[i][0]} ${botPts[i][1]} `;
+  for (let index = botPts.length - 1; index >= 0; index--) {
+    dRiver += `L ${botPts[index][0]} ${botPts[index][1]} `;
   }
   dRiver += "Z";
   layers.shapes.append(svgPath(dRiver, { fill: RIVER_BLUE }));
@@ -95,8 +96,8 @@ export function riverScene(x: number, y: number, w: number, h: number): void {
 
   // 5. A few flow waves inside the river to suggest current
   const flowCount = 8;
-  for (let i = 0; i < flowCount; i++) {
-    const cx = x + ((i + 0.5 + (rng() - 0.5) * 0.5) * w) / flowCount;
+  for (let index = 0; index < flowCount; index++) {
+    const cx = x + ((index + 0.5 + (rng() - 0.5) * 0.5) * w) / flowCount;
     const cy = riverMidY + (rng() - 0.5) * h * 0.18;
     const ww = 6 + rng() * 3;
     wave(cx, cy, ww, DEEP_BLUE);

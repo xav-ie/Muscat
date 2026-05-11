@@ -116,13 +116,13 @@ export function roundedRectPath(
   ].join(" ");
 }
 
-export type ArrowDir = "up" | "down" | "left" | "right";
+export type ArrowDirection = "up" | "down" | "left" | "right";
 
 // Build a path that is a rounded square OPTIONALLY with a triangular arrow
-// protruding from one of its sides (the merged shape).  When `arrowDir` is
+// protruding from one of its sides (the merged shape).  When `arrowDirection` is
 // 'right' | 'down' | 'left' | 'up', the side perpendicular to that direction
 // is interrupted at its midpoint by an outward-pointing triangle of length
-// `arrowLen` (apex distance) and half-width `arrowHalf` (along the side).
+// `arrowLength` (apex distance) and half-width `arrowHalf` (along the side).
 // Path is traversed clockwise; arrow protrusions break the side into:
 // "side-up-to-base-corner → out to apex → back to other-base-corner →
 //  continue along side".  Non-arrow sides traverse normally.
@@ -131,11 +131,12 @@ export function squareWithArrowPath(
   y: number,
   size: number,
   r: number,
-  arrowDir: ArrowDir | null | undefined,
-  arrowLen: number,
+  arrowDirection: ArrowDirection | null | undefined,
+  arrowLength: number,
   arrowHalf: number,
 ): string {
-  if (!arrowDir || arrowLen <= 0) return roundedRectPath(x, y, size, size, r);
+  if (!arrowDirection || arrowLength <= 0)
+    return roundedRectPath(x, y, size, size, r);
   r = Math.max(0, Math.min(r, size / 2));
   const mid = size / 2;
   const xL = x,
@@ -145,10 +146,10 @@ export function squareWithArrowPath(
   const parts = [`M ${xL + r} ${yT}`];
 
   // --- TOP EDGE (left → right) ---
-  if (arrowDir === "up") {
+  if (arrowDirection === "up") {
     parts.push(
       `H ${xL + mid - arrowHalf}`,
-      `L ${xL + mid} ${yT - arrowLen}`,
+      `L ${xL + mid} ${yT - arrowLength}`,
       `L ${xL + mid + arrowHalf} ${yT}`,
       `H ${xR - r}`,
     );
@@ -158,10 +159,10 @@ export function squareWithArrowPath(
   parts.push(`Q ${xR} ${yT} ${xR} ${yT + r}`); // top-right corner
 
   // --- RIGHT EDGE (top → bottom) ---
-  if (arrowDir === "right") {
+  if (arrowDirection === "right") {
     parts.push(
       `V ${yT + mid - arrowHalf}`,
-      `L ${xR + arrowLen} ${yT + mid}`,
+      `L ${xR + arrowLength} ${yT + mid}`,
       `L ${xR} ${yT + mid + arrowHalf}`,
       `V ${yB - r}`,
     );
@@ -171,10 +172,10 @@ export function squareWithArrowPath(
   parts.push(`Q ${xR} ${yB} ${xR - r} ${yB}`); // bottom-right corner
 
   // --- BOTTOM EDGE (right → left) ---
-  if (arrowDir === "down") {
+  if (arrowDirection === "down") {
     parts.push(
       `H ${xL + mid + arrowHalf}`,
-      `L ${xL + mid} ${yB + arrowLen}`,
+      `L ${xL + mid} ${yB + arrowLength}`,
       `L ${xL + mid - arrowHalf} ${yB}`,
       `H ${xL + r}`,
     );
@@ -184,10 +185,10 @@ export function squareWithArrowPath(
   parts.push(`Q ${xL} ${yB} ${xL} ${yB - r}`); // bottom-left corner
 
   // --- LEFT EDGE (bottom → top) ---
-  if (arrowDir === "left") {
+  if (arrowDirection === "left") {
     parts.push(
       `V ${yT + mid + arrowHalf}`,
-      `L ${xL - arrowLen} ${yT + mid}`,
+      `L ${xL - arrowLength} ${yT + mid}`,
       `L ${xL} ${yT + mid - arrowHalf}`,
       `V ${yT + r}`,
     );

@@ -13,12 +13,12 @@ interface FlowerHue {
   petal: string;
   center: string;
 }
-type CrestFn = (px: number) => number;
+type CrestFunction = (px: number) => number;
 
 // Return a function that maps an x-coordinate to its y on the given crest
 // polyline. Useful so callers can pass either a hill-derived sampler or a
 // constant-y lookup (e.g. for the banner top edge).
-function crestYFn(crest: Point[]): CrestFn {
+function crestYFunction(crest: Point[]): CrestFunction {
   return (px: number) => crestYAt(crest, px);
 }
 
@@ -43,8 +43,8 @@ export function flower(cx: number, cy: number, color: string): void {
   const petalR = 0.55;
   const ringR = 1.1;
   // 5 petal circles around a center
-  for (let i = 0; i < 5; i++) {
-    const a = i * ((Math.PI * 2) / 5);
+  for (let index = 0; index < 5; index++) {
+    const a = index * ((Math.PI * 2) / 5);
     const px = cx + Math.cos(a) * ringR;
     const py = cy + Math.sin(a) * ringR;
     const c = document.createElementNS(SVG_NS, "circle");
@@ -102,8 +102,8 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
     const crestY = y + h * crestFrac;
     const amp = h * ampFrac;
     const pts: Point[] = [];
-    for (let i = 0; i <= samples; i++) {
-      const t = i / samples;
+    for (let index = 0; index <= samples; index++) {
+      const t = index / samples;
       const px = x + t * w;
       const noise =
         Math.sin(t * Math.PI * freqA + phase) * 0.65 +
@@ -112,7 +112,8 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
       pts.push([px, py]);
     }
     let d = `M ${x} ${y + h} L ${pts[0][0]} ${pts[0][1]} `;
-    for (let i = 1; i < pts.length; i++) d += `L ${pts[i][0]} ${pts[i][1]} `;
+    for (let index = 1; index < pts.length; index++)
+      d += `L ${pts[index][0]} ${pts[index][1]} `;
     d += `L ${x + w} ${y + h} Z`;
     return { pts, d, color };
   }
@@ -146,7 +147,7 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
       xMax = x + w + edgeBleed;
     // Step 1: generate ALL tuft positions first, collecting (bx, by, scale)
     const tufts: { bx: number; by: number; scale: number }[] = [];
-    for (let i = 0; i < count; i++) {
+    for (let index = 0; index < count; index++) {
       const bx = xMin + rng() * (xMax - xMin);
       const xClamp = Math.max(x, Math.min(x + w, bx));
       const topY = crestYAt(thisCrest, xClamp);
@@ -178,7 +179,13 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
   // banner, then dense dark leaves on top of it.  The rectangle covers
   // edge-to-edge so no banner fill shows above the leaves.
   layers.shapes.append(svgRect(x, y, w, h, BACKDROP));
-  plantLeavesInBand(y, crestYFn(backHill.pts), "#1f3e10", "#2e5818", 6500);
+  plantLeavesInBand(
+    y,
+    crestYFunction(backHill.pts),
+    "#1f3e10",
+    "#2e5818",
+    6500,
+  );
 
   // Layer 1: back hill with DENSE grass blades.  Each blade randomly
   // mixes between BLADE_BACK and HILL_BACK for visible tonal striation
@@ -205,13 +212,13 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
   // ── Flowers on the front hill (drawn last, on top of all foliage) ──
   const flowerCount = 11;
   const margin = 2;
-  for (let i = 0; i < flowerCount; i++) {
-    const t = (i + rng()) / flowerCount;
-    const sampleIdx = Math.min(
+  for (let index = 0; index < flowerCount; index++) {
+    const t = (index + rng()) / flowerCount;
+    const sampleIndex = Math.min(
       frontHill.pts.length - 1,
       Math.max(0, Math.floor(t * frontHill.pts.length)),
     );
-    const [gx, gy] = frontHill.pts[sampleIdx];
+    const [gx, gy] = frontHill.pts[sampleIndex];
     if (gx < x + margin + 3 || gx > x + w - margin - 3) continue;
     const stemH = 2.5 + rng() * 2;
     const headX = gx + (rng() - 0.5) * 0.6;
@@ -227,8 +234,8 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
   // Plant leaves filling the band between topYFn(x) and botYFn(x).
   // Either argument can be a number (constant y) or a function (x → y).
   function plantLeavesInBand(
-    topYArg: number | CrestFn,
-    botYArg: number | CrestFn,
+    topYArgument: number | CrestFunction,
+    botYArgument: number | CrestFunction,
     darkColor: string,
     lightColor: string,
     leafCount: number,
@@ -236,15 +243,15 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
     const edgeBleed = 4;
     const xMin = x - edgeBleed,
       xMax = x + w + edgeBleed;
-    const topYFn: CrestFn =
-      typeof topYArg === "function" ? topYArg : () => topYArg;
-    const botYFn: CrestFn =
-      typeof botYArg === "function" ? botYArg : () => botYArg;
-    for (let i = 0; i < leafCount; i++) {
+    const topYFunction: CrestFunction =
+      typeof topYArgument === "function" ? topYArgument : () => topYArgument;
+    const botYFunction: CrestFunction =
+      typeof botYArgument === "function" ? botYArgument : () => botYArgument;
+    for (let index = 0; index < leafCount; index++) {
       const lx = xMin + rng() * (xMax - xMin);
       const xClamp = Math.max(x, Math.min(x + w, lx));
-      const topY = topYFn(xClamp);
-      const botY = botYFn(xClamp);
+      const topY = topYFunction(xClamp);
+      const botY = botYFunction(xClamp);
       if (botY <= topY) continue;
       const ly = topY + rng() * (botY - topY);
       const depthT = (ly - topY) / Math.max(0.001, botY - topY);
@@ -255,14 +262,14 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
       const base = rng() < 0.7 ? darkColor : lightColor;
       const color = jitterColor(base, 1.2);
 
-      const el = document.createElementNS(SVG_NS, "ellipse");
-      el.setAttribute("cx", String(lx));
-      el.setAttribute("cy", String(ly));
-      el.setAttribute("rx", String(rx));
-      el.setAttribute("ry", String(ry));
-      el.setAttribute("transform", `rotate(${angle} ${lx} ${ly})`);
-      el.setAttribute("fill", color);
-      layers.shapes.append(el);
+      const element = document.createElementNS(SVG_NS, "ellipse");
+      element.setAttribute("cx", String(lx));
+      element.setAttribute("cy", String(ly));
+      element.setAttribute("rx", String(rx));
+      element.setAttribute("ry", String(ry));
+      element.setAttribute("transform", `rotate(${angle} ${lx} ${ly})`);
+      element.setAttribute("fill", color);
+      layers.shapes.append(element);
     }
   }
 }
@@ -281,8 +288,8 @@ export function grassTuftOnGround(
 ): void {
   const n = 3 + Math.floor(rng() * 3); // 3-5 blades
   const baseSpread = 1.4 * scale;
-  for (let i = 0; i < n; i++) {
-    const t = (i - (n - 1) / 2) / Math.max(1, n - 1);
+  for (let index = 0; index < n; index++) {
+    const t = (index - (n - 1) / 2) / Math.max(1, n - 1);
     const bx = gx + t * baseSpread;
     const by = gy + 0.3 * scale;
     const heightBase = (3 + rng() * 2) * scale;
@@ -336,8 +343,8 @@ export function drawFlower(
   const petalRx = 0.55;
   const petalRy = 1.05;
   const ringR = 0.85;
-  for (let i = 0; i < nPetals; i++) {
-    const a = i * ((Math.PI * 2) / nPetals);
+  for (let index = 0; index < nPetals; index++) {
+    const a = index * ((Math.PI * 2) / nPetals);
     const px = headX + Math.cos(a) * ringR;
     const py = headY + Math.sin(a) * ringR;
     const ellipse = document.createElementNS(SVG_NS, "ellipse");
