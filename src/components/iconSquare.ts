@@ -1,0 +1,129 @@
+// @ts-nocheck
+import { SVG_NS, LINE_W, board, layers } from "../state.js";
+import { ICONS } from "../constants.js";
+import { uid } from "../util/uid.js";
+import {
+  svgPath,
+  svgRect,
+  svgImage,
+  roundedRectPath,
+  squareWithArrowPath,
+} from "../svg/primitives.js";
+
+// Rough rounded square. If `fill` is set, a crisp SVG rect is laid down first
+// so the rough outline can wobble outside its edges without smearing the color.
+// Rounded square. If `fill` is set, a crisp SVG rect is laid down first so the
+// outline (now plain SVG, displaced by the grain filter) wobbles outside its
+// edges without smearing the color.
+export function square(
+  x,
+  y,
+  size,
+  { fill = "none", stroke = "#111", strokeWidth = LINE_W, radius = 1.5 } = {},
+) {
+  if (fill && fill !== "none") {
+    layers.shapes.appendChild(svgRect(x, y, size, size, fill, radius));
+  }
+  if (stroke && stroke !== "none") {
+    layers.shapes.appendChild(
+      svgPath(roundedRectPath(x, y, size, size, radius), {
+        fill: "none",
+        stroke,
+        strokeWidth,
+      }),
+    );
+  }
+}
+
+// Tint-filter registry — maps a hex color to a filter id that recolors any
+// graphic to that color while preserving its alpha channel.  Used to recolor
+// the icon SVGs at render time without baking in colors at build time.
+let __tintRegistry = null;
+
+export function resetTintRegistry() {
+  __tintRegistry = null;
+}
+
+export function getTintFilterId(color) {
+  if (!__tintRegistry) __tintRegistry = new Map();
+  if (__tintRegistry.has(color)) return __tintRegistry.get(color);
+  const id = uid(`tint-${color.replace("#", "")}`);
+  const filter = document.createElementNS(SVG_NS, "filter");
+  filter.setAttribute("id", id);
+  filter.setAttribute("color-interpolation-filters", "sRGB");
+  // Flood the filter region with the target color, then keep only where the
+  // source had alpha (composite "in" with SourceGraphic).  Result: source
+  // shape, target color, original alpha.
+  const flood = document.createElementNS(SVG_NS, "feFlood");
+  flood.setAttribute("flood-color", color);
+  flood.setAttribute("flood-opacity", "1");
+  flood.setAttribute("result", "flood");
+  const composite = document.createElementNS(SVG_NS, "feComposite");
+  composite.setAttribute("in", "flood");
+  composite.setAttribute("in2", "SourceGraphic");
+  composite.setAttribute("operator", "in");
+  filter.appendChild(flood);
+  filter.appendChild(composite);
+  // Find the SVG's defs (top-level) — assumed to exist by render time
+  const defs = board.querySelector("defs");
+  defs.appendChild(filter);
+  __tintRegistry.set(color, id);
+  return id;
+}
+
+// Square + icon centered inside.
+// `theme` controls coloring per quadlet row:
+//   theme.squareFill — fill of the rounded square
+//   theme.iconColor  — recolor target for the icon SVG
+//   theme.outline    — square outline color
+export function iconSquare(x, y, size, iconKey, theme, arrowDir) {
+  // Build the path: a rounded square optionally with a triangular arrow
+  // protrusion on one side.  When merged, the arrow becomes part of the
+  // square's path so it gets the same outline, the same fill, the same
+  // inset-shadow filter perimeter, and is locked to its source square (so
+  // it can't visually disconnect from it under the grain filter's edge
+  // displacement).
+  const radius = 1.5;
+  const arrowLen = arrowDir ? size * 0.18 : 0; // matches the gap inside quadlet()
+  const arrowHalf = arrowLen * 0.75;
+  const path = squareWithArrowPath(
+    x,
+    y,
+    size,
+    radius,
+    arrowDir,
+    arrowLen,
+    arrowHalf,
+  );
+
+  // Crisp filled underlay (uniform color regardless of grain displacement)
+  if (theme.squareFill && theme.squareFill !== "none") {
+    layers.shapes.appendChild(
+      svgPath(path, {
+        fill: theme.squareFill,
+        stroke: "none",
+      }),
+    );
+  }
+  // Stroked outline — wobbles via grain filter
+  if (theme.outline && theme.outline !== "none") {
+    const outlinePath = svgPath(path, {
+      fill: "none",
+      stroke: theme.outline,
+      strokeWidth: LINE_W,
+    });
+    // Round line joins so the angle where the side meets the slanted arrow
+    // edge doesn't spike out as a miter point under stroke-linejoin='miter'.
+    outlinePath.setAttribute("stroke-linejoin", "round");
+    outlinePath.setAttribute("stroke-linecap", "round");
+    layers.shapes.appendChild(outlinePath);
+  }
+
+  // Icon image, padded inside the square
+  const pad = size * 0.08;
+  const iconSize = size - pad * 2;
+  const dataUrl = `data:image/svg+xml;base64,${ICONS[iconKey]}`;
+  const img = svgImage(dataUrl, x + pad, y + pad, iconSize, iconSize);
+  img.setAttribute("filter", `url(#${getTintFilterId(theme.iconColor)})`);
+  layers.shapes.appendChild(img);
+}
