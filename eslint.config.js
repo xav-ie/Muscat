@@ -38,8 +38,6 @@ export default defineConfig(
         "error",
         { allowNumber: true },
       ],
-      // Files use camelCase to match exported identifiers.
-      "unicorn/filename-case": ["error", { case: "camelCase" }],
       // Prettier 3.x downcases hex literals (`0xFF` → `0xff`); align this rule
       // so they don't fight on every format pass.
       "unicorn/number-literal-case": [

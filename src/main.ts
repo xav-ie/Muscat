@@ -1,6 +1,6 @@
 import { SVG_NS, board, G } from "./state.js";
 import { freshSeed } from "./util/rng.js";
-import { get2dContext } from "./util/canvasLayer.js";
+import { get2dContext } from "./util/canvas-layer.js";
 import { render } from "./render.js";
 
 // Look up an element by CSS selector and verify its runtime type via the

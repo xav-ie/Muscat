@@ -6,8 +6,8 @@ import {
   svgLine,
   roundedRectPath,
 } from "../svg/primitives.js";
-import { applyInsetShadow, makeInsetShadowFilter } from "../svg/insetShadow.js";
-import { edgeNumber } from "./edgeNumber.js";
+import { applyInsetShadow, makeInsetShadowFilter } from "../svg/inset-shadow.js";
+import { edgeNumber } from "./edge-number.js";
 
 // Castle at the top of the board.
 // Footprint: (x, y) is top-left of the bounding box, (w, h) is the size.

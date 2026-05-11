@@ -1,7 +1,7 @@
 import { layers } from "../state.js";
 import { random as rng } from "../util/rng.js";
 import { poissonDisk } from "../util/poisson.js";
-import { embedCanvasAsImage, get2dContext } from "../util/canvasLayer.js";
+import { embedCanvasAsImage, get2dContext } from "../util/canvas-layer.js";
 
 type RGB = [number, number, number];
 interface LayerCfg {

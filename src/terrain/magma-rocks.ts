@@ -1,6 +1,6 @@
 import { layers } from "../state.js";
 import { random as rng } from "../util/rng.js";
-import { embedCanvasAsImage, get2dContext } from "../util/canvasLayer.js";
+import { embedCanvasAsImage, get2dContext } from "../util/canvas-layer.js";
 
 // Hermite smoothstep — clamps `t` into [a, b] then maps to a cubic ease curve.
 function smoothstep(a: number, b: number, t: number): number {

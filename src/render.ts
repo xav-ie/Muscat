@@ -2,12 +2,12 @@ import { SVG_NS, LINE_W, G, layers, getDefs } from "./state.js";
 import { reseed } from "./util/rng.js";
 import { svgPath } from "./svg/primitives.js";
 import { clear, setupLayers, ensureSvgFont } from "./svg/filters.js";
-import { resetTintRegistry } from "./components/iconSquare.js";
+import { resetTintRegistry } from "./components/icon-square.js";
 import { quadletRow } from "./components/quadlet.js";
-import { edgeNumber } from "./components/edgeNumber.js";
+import { edgeNumber } from "./components/edge-number.js";
 import { castle } from "./components/castle.js";
-import { terrainBanner } from "./terrain/terrainBanner.js";
-import type { IconTheme } from "./components/iconSquare.js";
+import { terrainBanner } from "./terrain/terrain-banner.js";
+import type { IconTheme } from "./components/icon-square.js";
 
 // ─────────────────────────────────────────────────────────────────────
 // COMPOSE THE BOARD

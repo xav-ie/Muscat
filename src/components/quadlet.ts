@@ -1,6 +1,6 @@
 import { SVG_NS, layers } from "../state.js";
-import { iconSquare } from "./iconSquare.js";
-import type { IconTheme } from "./iconSquare.js";
+import { iconSquare } from "./icon-square.js";
+import type { IconTheme } from "./icon-square.js";
 import type { ArrowDir } from "../svg/primitives.js";
 
 // One quadlet: 2x2 grid of icon squares with 4 directional arrows in the gaps

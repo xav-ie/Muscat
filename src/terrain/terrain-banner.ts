@@ -1,10 +1,10 @@
 import { SVG_NS, LINE_W, layers, getDefs } from "../state.js";
 import { uid } from "../util/uid.js";
 import { svgPath, svgRect, roundedRectPath } from "../svg/primitives.js";
-import { magmaRocks } from "./magmaRocks.js";
-import { crackedDesert } from "./crackedDesert.js";
-import { waterCaustics } from "./waterCaustics.js";
-import { grassScene } from "./grassScene.js";
+import { magmaRocks } from "./magma-rocks.js";
+import { crackedDesert } from "./cracked-desert.js";
+import { waterCaustics } from "./water-caustics.js";
+import { grassScene } from "./grass-scene.js";
 
 export function decorateBanner(
   s: number,
