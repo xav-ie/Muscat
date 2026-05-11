@@ -68,6 +68,11 @@ function canGrowBranch(
 // attempt 1: 35%. Indexed directly by attemptIndex.
 const SIDE_BRANCH_PROB = [0.6, 0.35];
 
+// Uniform random ±1.
+function randomSign(): number {
+  return rng() < 0.5 ? -1 : 1;
+}
+
 // Side selection for a branch attempt. The FIRST attempt picks freely
 // (50/50); subsequent attempts prefer the OPPOSITE side of the first (70%
 // flip). Returns both the chosen side AND the updated `firstSide` carry,
@@ -187,23 +192,23 @@ function ribbonPath(pts: Point[], widthAtBaseEnd: number, widthAtTipEnd: number)
   );
 }
 
-// Tangent at vertex `index` along the polyline. Prefer the segment from
-// pts[index-1] → pts[index]; if degenerate (zero-length), walk forward then
-// backward to find a non-degenerate neighbour. Returns `dl = 0` only when
-// the entire polyline is degenerate.
+// Tangent at vertex `index` along the polyline. Try the direct segment
+// (anchor → index) first, then walk forward, then backward — each candidate
+// gives a forward-pointing tangent. Returns `dl = 0` only when the entire
+// polyline is degenerate.
 function tangentAtVertex(pts: Point[], index: number): { dx: number; dy: number; dl: number } {
-  // Forward sweep: index, index+1, ... — covers the direct case at index.
-  for (let index_ = index; index_ < pts.length; index_++) {
-    const dx = pts[index_][0] - pts[index - 1][0];
-    const dy = pts[index_][1] - pts[index - 1][1];
-    const dl = Math.hypot(dx, dy);
-    if (dl > 1e-6) return { dx, dy, dl };
-  }
-  // Backward sweep: index-2, index-3, ... (signs flip so tangent stays
-  // forward-pointing).
-  for (let index_ = index - 2; index_ >= 0; index_--) {
-    const dx = pts[index - 1][0] - pts[index_][0];
-    const dy = pts[index - 1][1] - pts[index_][1];
+  const anchor = index - 1;
+  // Candidate (from, to) pairs in priority order. Forward sweep keeps anchor
+  // as `from`; backward sweep slides `from` further back so the resulting
+  // (to − from) vector still points forward along the polyline.
+  const forward = Array.from(
+    { length: pts.length - index },
+    (_, k) => [anchor, index + k] as const,
+  );
+  const backward = Array.from({ length: anchor }, (_, k) => [anchor - 1 - k, anchor] as const);
+  for (const [from, to] of [...forward, ...backward]) {
+    const dx = pts[to][0] - pts[from][0];
+    const dy = pts[to][1] - pts[from][1];
     const dl = Math.hypot(dx, dy);
     if (dl > 1e-6) return { dx, dy, dl };
   }
@@ -302,6 +307,24 @@ function polylineCrossesPool(polyPts: Point[], pool: CrackSeg[], attachSegIndex?
   return false;
 }
 
+// Build a candidate spine and reject it if buildSpine failed OR the result
+// would cross any existing crack in the pool (with the usual attach-segment
+// exemption). Returns undefined on rejection.
+function buildAcceptableSpine(
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
+  segs: number,
+  jogFraction: number,
+  pool: CrackSeg[],
+  attachSegIndex?: number,
+): Spine | undefined {
+  const s = buildSpine(startX, startY, endX, endY, segs, jogFraction);
+  if (!s || polylineCrossesPool(s.pts, pool, attachSegIndex)) return undefined;
+  return s;
+}
+
 // Record a polyline's segments in the pool so future candidates can test
 // against it. Returns the starting index for caller reference.
 function recordPolyline(polyPts: Point[], pool: CrackSeg[]): number {
@@ -317,15 +340,18 @@ function recordPolyline(polyPts: Point[], pool: CrackSeg[]): number {
   return startIndex;
 }
 
+// Upper bound of each crack-count bucket. effectiveRoll < 0.20 → 0 cracks,
+// < 0.55 → 1, < 0.85 → 2, < 0.97 → 3, otherwise 4.
+const CRACK_COUNT_THRESHOLDS = [0.2, 0.55, 0.85, 0.97];
+
 // Cell crack count: 0-4, weighted toward 1-2 (~20% un-cracked, occasional
 // 3-4). `crackProb` scales the roll: <1 reduces toward 0, >1 increases.
 function pickCrackCount(roll: number, crackProb: number): number {
   const effectiveRoll = roll / Math.max(0.001, crackProb);
-  if (effectiveRoll < 0.2) return 0;
-  if (effectiveRoll < 0.55) return 1;
-  if (effectiveRoll < 0.85) return 2;
-  if (effectiveRoll < 0.97) return 3;
-  return 4;
+  for (const [index, threshold] of CRACK_COUNT_THRESHOLDS.entries()) {
+    if (effectiveRoll < threshold) return index;
+  }
+  return CRACK_COUNT_THRESHOLDS.length;
 }
 
 // Build the sand-colored cell-fill group, one path per cell with a random
@@ -443,17 +469,26 @@ export function crackedDesert(x: number, y: number, w: number, h: number): void 
     const endY = baseY + directionY * length;
     const segs = Math.max(2, Math.min(5, Math.floor(length * 0.6) + 2));
     const localJog = innerJog * (0.4 + rng() * 0.8);
-    // Rejection: candidate may cross any pool segment EXCEPT the parent
-    // segment it's attaching to (which it legitimately touches).
-    const s = buildSpine(baseX, baseY, endX, endY, segs, localJog);
-    if (!s || polylineCrossesPool(s.pts, pool, attachSegIndex)) return;
+    // Candidate may cross any pool segment EXCEPT the parent it attaches to.
+    const s = buildAcceptableSpine(baseX, baseY, endX, endY, segs, localJog, pool, attachSegIndex);
+    if (!s) return;
     const branchStartIndex = recordPolyline(s.pts, pool);
 
     // Render: pts[0] is the BASE so reverse for ribbonPath (tip-first)
     const reversed = s.pts.toReversed();
     innerD += ribbonPath(reversed, baseW, 0);
+    attemptAllSubBranches(s, depth, length, baseW, pool, branchStartIndex);
+  }
 
-    // ── Sub-branch decisions ─────────────────────────────────────
+  // Spawn up to 3 - depth sub-branch attempts off the parent spine.
+  function attemptAllSubBranches(
+    s: Spine,
+    depth: number,
+    length: number,
+    baseW: number,
+    pool: CrackSeg[],
+    branchStartIndex: number,
+  ): void {
     const maxAttempts = 3 - depth;
     for (let att = 0; att < maxAttempts; att++) {
       attemptSubBranch(s, att, depth, length, baseW, pool, branchStartIndex);
@@ -478,7 +513,7 @@ export function crackedDesert(x: number, y: number, w: number, h: number): void 
     const subT = 0.3 + rng() * 0.55;
     const along = pointAlongPolyline(s.pts, subT);
     if (!along) return;
-    const sideSign = rng() < 0.5 ? -1 : 1;
+    const sideSign = randomSign();
     const angleFromPerp = (rng() - 0.4) * Math.PI * 0.75;
     const cosA = Math.cos(angleFromPerp);
     const sinA = Math.sin(angleFromPerp);
@@ -562,9 +597,8 @@ export function crackedDesert(x: number, y: number, w: number, h: number): void 
     const vIndex = pickUnusedVertex(c, usedVerts);
     if (vIndex === undefined) return;
     const target = c.poly[vIndex];
-
-    const dxT = target[0] - cx,
-      dyT = target[1] - cy;
+    const dxT = target[0] - cx;
+    const dyT = target[1] - cy;
     if (Math.hypot(dxT, dyT) < 0.5) return;
 
     // Start somewhere along centroid→target line, biased toward centroid.
@@ -574,10 +608,10 @@ export function crackedDesert(x: number, y: number, w: number, h: number): void 
     const segs = Math.max(2, Math.round(innerSegs * (0.7 + rng() * 0.6)));
     // Per-crack jog varies — some are nearly straight, some wander.
     const localJog = innerJog * (0.5 + rng() * 0.9);
-    const s = buildSpine(startX, startY, target[0], target[1], segs, localJog);
+    // Build the spine; reject if it failed OR would cross any existing crack
+    // (main cracks don't attach to anything yet, so any crossing is invalid).
+    const s = buildAcceptableSpine(startX, startY, target[0], target[1], segs, localJog, pool);
     if (!s) return;
-    // Main cracks don't attach to anything yet, so reject ANY crossing.
-    if (polylineCrossesPool(s.pts, pool)) return;
 
     usedVerts.add(vIndex);
     const mainStartIndex = recordPolyline(s.pts, pool);

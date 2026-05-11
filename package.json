@@ -11,7 +11,7 @@
     "check:format": "oxfmt --check .",
     "check:lint": "eslint .",
     "check:knip": "knip",
-    "check:fallow": "npx --yes fallow",
+    "check:fallow": "fallow audit",
     "check:types": "tsc --noEmit"
   },
   "devDependencies": {
@@ -21,6 +21,7 @@
     "esbuild": "^0.28.0",
     "eslint": "^10.3.0",
     "eslint-plugin-unicorn": "^64.0.0",
+    "fallow": "^2.69.0",
     "globals": "^17.6.0",
     "knip": "^6.12.2",
     "oxfmt": "^0.48.0",

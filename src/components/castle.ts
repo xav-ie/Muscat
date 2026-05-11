@@ -42,18 +42,16 @@ export function castle(x: number, y: number, w: number, h: number): void {
   ): [number, number][] {
     const segCount = 2 * merlonCount - 1; // M C M C ... M
     const segW = (x1 - x0) / segCount;
-    const merlonY = topY; // top of merlon
-    const crenelY = topY + merlonH; // floor of crenel
-    // Seed with the very first point so the loop body has uniform shape.
-    const pts: [number, number][] = [[x0, merlonY]];
+    // Index parity → y: even = merlon top, odd = crenel floor. Looked up by
+    // `parity` and `1 - parity` to get the segment's y and its step-into-next.
+    const yByParity = [topY, topY + merlonH];
+    const pts: [number, number][] = [[x0, yByParity[0]]];
     for (let index = 0; index < segCount; index++) {
       const segEnd = x0 + (index + 1) * segW;
-      const isMerlon = index % 2 === 0;
-      const ey = isMerlon ? merlonY : crenelY;
-      const stepY = isMerlon ? crenelY : merlonY;
-      pts.push([segEnd, ey]);
+      const parity = index % 2;
+      pts.push([segEnd, yByParity[parity]]);
       // Vertical step into the next segment (skip after the final segment).
-      if (index < segCount - 1) pts.push([segEnd, stepY]);
+      if (index < segCount - 1) pts.push([segEnd, yByParity[1 - parity]]);
     }
     return pts;
   }
@@ -531,9 +529,8 @@ export function castle(x: number, y: number, w: number, h: number): void {
     return dString;
   }
 
-  // Build the full plank path: verticals at every PLANK_W from the seam
-  // outward, plus per-plank horizontal joints (running-bond stagger).
-  function buildPlankPath(): string {
+  // Vertical plank dividers at every PLANK_W from the seam outward.
+  function buildPlankVerticals(): string {
     let result = "";
     for (let dx = 0; seamX - dx >= archX - PLANK_W; dx += PLANK_W) {
       const px = seamX - dx;
@@ -543,22 +540,24 @@ export function castle(x: number, y: number, w: number, h: number): void {
       const px = seamX + dx;
       result += svg`M ${px} ${archY} L ${px} ${groundY} `;
     }
-    // Plank index n: x range [seamX + n*PLANK_W, seamX + (n+1)*PLANK_W]. Right
-    // of seam: n = 0, 1, 2... Left of seam: n = -1, -2... Stop when plank is
-    // fully outside the door.
+    return result;
+  }
+  // Per-plank horizontal joints (running-bond stagger). Plank index n: x
+  // range [seamX + n*PLANK_W, seamX + (n+1)*PLANK_W]. Right of seam: n ≥ 0;
+  // left of seam: n ≤ -1. Stop when the plank is fully outside the door.
+  function buildPlankHorizontals(): string {
+    let result = "";
     for (let n = 0; seamX + n * PLANK_W <= archX + archW; n++) {
       const lx = seamX + n * PLANK_W;
-      const parity = ((n % 2) + 2) % 2;
-      result += plankJoints(lx, lx + PLANK_W, parity);
+      result += plankJoints(lx, lx + PLANK_W, ((n % 2) + 2) % 2);
     }
     for (let n = -1; seamX + (n + 1) * PLANK_W >= archX; n--) {
       const lx = seamX + n * PLANK_W;
-      const parity = ((n % 2) + 2) % 2;
-      result += plankJoints(lx, lx + PLANK_W, parity);
+      result += plankJoints(lx, lx + PLANK_W, ((n % 2) + 2) % 2);
     }
     return result;
   }
-  const plankD = buildPlankPath();
+  const plankD = buildPlankVerticals() + buildPlankHorizontals();
 
   const plankPath = document.createElementNS(SVG_NS, "path");
   plankPath.setAttribute("d", plankD);

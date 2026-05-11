@@ -29,6 +29,12 @@ function asCrestFunction(value: number | CrestFunction): CrestFunction {
   return typeof value === "function" ? value : () => value;
 }
 
+// y at column `px` along `crest`, or `fallback` if no crest is given. Used
+// where the lower band is sometimes a real hill and sometimes flat ground.
+function crestYOrFallback(crest: Point[] | undefined, px: number, fallback: number): number {
+  return crest ? crestYAt(crest, px) : fallback;
+}
+
 // Sample y at any x along a hill's polyline. Binary search by x then linear
 // interpolate within the bracketing segment.
 function crestYAt(crest: Point[], px: number): number {
@@ -131,7 +137,7 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
       const bx = xMin + rng() * (xMax - xMin);
       const xClamp = Math.max(x, Math.min(x + w, bx));
       const topY = crestYAt(thisCrest, xClamp);
-      const botY = nextCrest ? crestYAt(nextCrest, xClamp) : y + h + edgeBleed;
+      const botY = crestYOrFallback(nextCrest, xClamp, y + h + edgeBleed);
       if (botY <= topY) continue;
       const by = topY + rng() * (botY - topY);
       const scale = minScale + rng() * (maxScale - minScale);

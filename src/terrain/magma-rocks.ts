@@ -11,6 +11,22 @@ function smoothstep(a: number, b: number, t: number): number {
   return x * x * (3 - 2 * x);
 }
 
+// Invoke `visit(xx, yy)` for each of the 9 cells in the 3x3 neighborhood
+// around (0, 0). Centralizes the nested-loop shape used by the cell-finding
+// and edge-distance passes.
+function sweep3x3(visit: (xx: number, yy: number) => void): void {
+  for (let yy = -1; yy <= 1; yy++) {
+    for (let xx = -1; xx <= 1; xx++) visit(xx, yy);
+  }
+}
+
+// `count` fresh phase offsets in [0, 2π), drawn from `rand`.
+function freshPhases(count: number, rand: () => number): number[] {
+  const phases: number[] = [];
+  for (let index = 0; index < count; index++) phases.push(rand() * Math.PI * 2);
+  return phases;
+}
+
 // Signed distance from the cell's seed offset (coX, coY) to the perpendicular
 // bisector between it and the neighbor at (cox, coy). Returns `null` when the
 // neighbor IS the seed (degenerate) so callers can skip it.
@@ -93,22 +109,39 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
     posY: number,
   ): { dCenter: number; coX: number; coY: number } {
     let dCenter = 8;
-    let coX = 0,
-      coY = 0;
-    for (let yy = -1; yy <= 1; yy++) {
-      for (let xx = -1; xx <= 1; xx++) {
-        const rv = randomVector(cellX + xx, cellY + yy, angleOffset);
-        const cox = xx - posX + rv[0];
-        const coy = yy - posY + rv[1];
-        const d = cox * cox + coy * coy;
-        if (d < dCenter) {
-          dCenter = d;
-          coX = cox;
-          coY = coy;
-        }
+    let coX = 0;
+    let coY = 0;
+    sweep3x3((xx, yy) => {
+      const rv = randomVector(cellX + xx, cellY + yy, angleOffset);
+      const cox = xx - posX + rv[0];
+      const coy = yy - posY + rv[1];
+      const d = cox * cox + coy * coy;
+      if (d < dCenter) {
+        dCenter = d;
+        coX = cox;
+        coY = coy;
       }
-    }
+    });
     return { dCenter: Math.sqrt(dCenter), coX, coY };
+  }
+
+  // Visit each non-degenerate bisector distance from the seed (coX, coY) to
+  // its 3x3 neighbors. Centralizes the rv/distanceToBisector chain so the
+  // hard-min and soft-min aggregations don't need their own copy.
+  function sweepBisectorDistances(
+    cellX: number,
+    cellY: number,
+    posX: number,
+    posY: number,
+    coX: number,
+    coY: number,
+    visit: (dToEdge: number) => void,
+  ): void {
+    sweep3x3((xx, yy) => {
+      const rv = randomVector(cellX + xx, cellY + yy, angleOffset);
+      const dToEdge = distanceToBisector(xx - posX + rv[0], yy - posY + rv[1], coX, coY);
+      if (dToEdge !== undefined) visit(dToEdge);
+    });
   }
 
   // Hard-min dEdge — original Quilez behavior. Bisector intersections form
@@ -122,13 +155,9 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
     coY: number,
   ): number {
     let dEdge = 8;
-    for (let yy = -1; yy <= 1; yy++) {
-      for (let xx = -1; xx <= 1; xx++) {
-        const rv = randomVector(cellX + xx, cellY + yy, angleOffset);
-        const dToEdge = distanceToBisector(xx - posX + rv[0], yy - posY + rv[1], coX, coY);
-        if (dToEdge !== undefined && dToEdge < dEdge) dEdge = dToEdge;
-      }
-    }
+    sweepBisectorDistances(cellX, cellY, posX, posY, coX, coY, (d) => {
+      if (d < dEdge) dEdge = d;
+    });
     return dEdge;
   }
 
@@ -145,13 +174,9 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
     k: number,
   ): number {
     let sumExp = 0;
-    for (let yy = -1; yy <= 1; yy++) {
-      for (let xx = -1; xx <= 1; xx++) {
-        const rv = randomVector(cellX + xx, cellY + yy, angleOffset);
-        const dToEdge = distanceToBisector(xx - posX + rv[0], yy - posY + rv[1], coX, coY);
-        if (dToEdge !== undefined) sumExp += Math.exp(-dToEdge / k);
-      }
-    }
+    sweepBisectorDistances(cellX, cellY, posX, posY, coX, coY, (d) => {
+      sumExp += Math.exp(-d / k);
+    });
     // Guard: if no valid neighbors contributed (all were the closest cell —
     // only happens at degenerate spots), fall back to the hard-min sentinel.
     return sumExp <= 0 ? 8 : -k * Math.log(sumExp);
@@ -187,8 +212,7 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   // different position depending on the local noise value, so cell edges
   // become ragged & jagged rather than uniformly wobbly.
   // Phases randomized per render so the cragginess pattern doesn't repeat.
-  const eph: number[] = [];
-  for (let index = 0; index < 8; index++) eph.push(rng() * Math.PI * 2);
+  const eph = freshPhases(8, rng);
   function craggyNoise(uvX: number, uvY: number): number {
     // 3 octaves of sin-product noise.  Each octave doubles the frequency
     // and halves the contribution.  Range roughly [-1, 1].
@@ -207,8 +231,7 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   // long.  Frequency cellDensity * 6.0 → wavelength ~cell/6, so each edge
   // sees ~6 oscillations along its length → visible wavy bumps.
   // Two octaves at this scale and 2x for organic non-uniform waves.
-  const wph: number[] = [];
-  for (let index = 0; index < 8; index++) wph.push(rng() * Math.PI * 2);
+  const wph = freshPhases(8, rng);
   const wf = cellDensity * 6;
   function wobbleNoise(uvX: number, uvY: number): number {
     const n =
@@ -324,16 +347,19 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
     ];
   }
 
-  for (let py = 0; py < H; py++) {
-    for (let px = 0; px < W; px++) {
-      const [r, g, b] = shadePixel(px, py);
-      const index = (py * W + px) * 4;
-      data[index] = Math.max(0, Math.min(255, Math.trunc(r)));
-      data[index + 1] = Math.max(0, Math.min(255, Math.trunc(g)));
-      data[index + 2] = Math.max(0, Math.min(255, Math.trunc(b)));
-      data[index + 3] = 255;
+  function paintCanvas(): void {
+    for (let py = 0; py < H; py++) {
+      for (let px = 0; px < W; px++) {
+        const [r, g, b] = shadePixel(px, py);
+        const index = (py * W + px) * 4;
+        data[index] = Math.max(0, Math.min(255, Math.trunc(r)));
+        data[index + 1] = Math.max(0, Math.min(255, Math.trunc(g)));
+        data[index + 2] = Math.max(0, Math.min(255, Math.trunc(b)));
+        data[index + 3] = 255;
+      }
     }
   }
+  paintCanvas();
   context.putImageData(img, 0, 0);
 
   embedCanvasAsImage(layers.shapes, canvas, x, y, w, h);

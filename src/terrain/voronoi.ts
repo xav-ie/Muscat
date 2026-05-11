@@ -33,6 +33,31 @@ export interface VoronoiToolkit {
 // rect and successively clip it against the perpendicular bisector of every
 // OTHER seed.  Inefficient (O(n²) per cell, O(n³) total) but n is small
 // (~25) so it's instant.
+// Append the kept portion of edge `(current → nxt)` to `out`, given the
+// line normal (-dy, dx) anchored at (ax, ay) and the seed-side sign. Keeps
+// `current` when it's on the seed's side, and emits the boundary intersection
+// when the edge crosses the line.
+function clipEdgeAgainstHalfplane(
+  out: Polygon,
+  current: Point,
+  nxt: Point,
+  ax: number,
+  ay: number,
+  dx: number,
+  dy: number,
+  seedSignal: number,
+): void {
+  const sCurrent = (current[0] - ax) * -dy + (current[1] - ay) * dx;
+  const sNxt = (nxt[0] - ax) * -dy + (nxt[1] - ay) * dx;
+  const currentIn = seedSignal * sCurrent >= 0;
+  const nxtIn = seedSignal * sNxt >= 0;
+  if (currentIn) out.push(current);
+  if (currentIn !== nxtIn) {
+    const t = sCurrent / (sCurrent - sNxt);
+    out.push([current[0] + t * (nxt[0] - current[0]), current[1] + t * (nxt[1] - current[1])]);
+  }
+}
+
 function clipPolygonByHalfplane(
   poly: Polygon,
   ax: number,
@@ -43,30 +68,19 @@ function clipPolygonByHalfplane(
   sy: number,
 ): Polygon {
   // Keep points on the same side of the line (ax,ay)-(bx,by) as (sx,sy).
-  // Line normal: (-dy, dx) where d = b - a.
-  const dx = bx - ax,
-    dy = by - ay;
-  // For a point p, sign = (p - a) · normal = (p.x - ax) * (-dy) + (p.y - ay) * dx
-  function side(px: number, py: number): number {
-    return (px - ax) * -dy + (py - ay) * dx;
-  }
-  const seedSide = side(sx, sy);
+  // For a point p, sign = (p - a) · normal = (p.x - ax) * (-dy) + (p.y - ay) * dx,
+  // where (-dy, dx) is the line normal (d = b - a). Multiplying by the seed's
+  // sign collapses the "keep" predicate to seedSignal * s ≥ 0.
+  const dx = bx - ax;
+  const dy = by - ay;
+  const seedSide = (sx - ax) * -dy + (sy - ay) * dx;
   if (Math.abs(seedSide) < 1e-9) return poly; // seed exactly on line; skip
+  const seedSignal = Math.sign(seedSide);
   const out: Polygon = [];
-  const keep = (s: number) => (seedSide > 0 ? s >= 0 : s <= 0);
   for (let index = 0; index < poly.length; index++) {
     const current = poly[index];
     const nxt = poly[(index + 1) % poly.length];
-    const sCurrent = side(current[0], current[1]);
-    const sNxt = side(nxt[0], nxt[1]);
-    const currentIn = keep(sCurrent);
-    const nxtIn = keep(sNxt);
-    if (currentIn) out.push(current);
-    if (currentIn !== nxtIn) {
-      // Compute intersection of segment cur→nxt with the line
-      const t = sCurrent / (sCurrent - sNxt);
-      out.push([current[0] + t * (nxt[0] - current[0]), current[1] + t * (nxt[1] - current[1])]);
-    }
+    clipEdgeAgainstHalfplane(out, current, nxt, ax, ay, dx, dy, seedSignal);
   }
   return out;
 }
@@ -170,12 +184,15 @@ export function voronoiCellsWithWavyEdges(
     const k2 = `${b[0].toFixed(2)},${b[1].toFixed(2)}`;
     return k1 < k2;
   }
+  function canonicalEdge(a: Point, b: Point): [Point, Point] {
+    return isCanonicalForward(a, b) ? [a, b] : [b, a];
+  }
   const edgeNoiseCache = new Map<string, Point[]>();
   function getEdgeNoise(a: Point, b: Point): Point[] {
     const k = edgeKey(a, b);
     const cached = edgeNoiseCache.get(k);
     if (cached) return cached;
-    const [p, q] = isCanonicalForward(a, b) ? [a, b] : [b, a];
+    const [p, q] = canonicalEdge(a, b);
     const dx = q[0] - p[0],
       dy = q[1] - p[1];
     const length_ = Math.hypot(dx, dy);
