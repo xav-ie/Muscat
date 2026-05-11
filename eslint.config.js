@@ -32,12 +32,6 @@ export default defineConfig(
   },
   {
     rules: {
-      // SVG path generation is built on `${x} ${y}` interpolation — numbers
-      // in template literals are intentional and pervasive.
-      "@typescript-eslint/restrict-template-expressions": [
-        "error",
-        { allowNumber: true },
-      ],
       // Prettier 3.x downcases hex literals (`0xFF` → `0xff`); align this rule
       // so they don't fight on every format pass.
       "unicorn/number-literal-case": [

@@ -1,4 +1,5 @@
 import { LINE_W, layers } from "../state.js";
+import { svg } from "../svg/template.js";
 import { random as rng } from "../util/rng.js";
 import { poissonDisk } from "../util/poisson.js";
 import { svgPath } from "../svg/primitives.js";
@@ -28,7 +29,7 @@ export function grassTuft(cx: number, groundY: number, color: string): void {
     // Control point bows the blade outward
     const ctrlX = bx + lean * 0.5 + (rng() - 0.5) * 0.6;
     const ctrlY = by - height * 0.5;
-    const d = `M ${bx} ${by} Q ${ctrlX} ${ctrlY} ${tx} ${ty}`;
+    const d = svg`M ${bx} ${by} Q ${ctrlX} ${ctrlY} ${tx} ${ty}`;
     layers.shapes.append(
       svgPath(d, {
         fill: "none",
@@ -72,9 +73,9 @@ export function wave(
   const amp = width * 0.18;
   // Cubic that goes up then down then up again across the span
   const d =
-    `M ${cx - half} ${cy} ` +
-    `C ${cx - half * 0.5} ${cy - amp}, ${cx - half * 0.2} ${cy + amp}, ${cx} ${cy} ` +
-    `C ${cx + half * 0.2} ${cy - amp}, ${cx + half * 0.5} ${cy + amp}, ${cx + half} ${cy}`;
+    svg`M ${cx - half} ${cy} ` +
+    svg`C ${cx - half * 0.5} ${cy - amp}, ${cx - half * 0.2} ${cy + amp}, ${cx} ${cy} ` +
+    svg`C ${cx + half * 0.2} ${cy - amp}, ${cx + half * 0.5} ${cy + amp}, ${cx + half} ${cy}`;
   layers.shapes.append(
     svgPath(d, {
       fill: "none",

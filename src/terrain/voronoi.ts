@@ -1,3 +1,4 @@
+import { svg } from "../svg/template.js";
 import { random as rng } from "../util/rng.js";
 import { poissonDisk } from "../util/poisson.js";
 
@@ -224,7 +225,7 @@ export function voronoiCellsWithWavyEdges(
       (pts[n - 1][0] + pts[0][0]) / 2,
       (pts[n - 1][1] + pts[0][1]) / 2,
     ];
-    let d = `M ${startMid[0]} ${startMid[1]} `;
+    let d = svg`M ${startMid[0]} ${startMid[1]} `;
     for (let index = 0; index < n; index++) {
       const current = pts[index];
       const next = pts[(index + 1) % n];
@@ -232,7 +233,7 @@ export function voronoiCellsWithWavyEdges(
         (current[0] + next[0]) / 2,
         (current[1] + next[1]) / 2,
       ];
-      d += `Q ${current[0]} ${current[1]} ${mid[0]} ${mid[1]} `;
+      d += svg`Q ${current[0]} ${current[1]} ${mid[0]} ${mid[1]} `;
     }
     d += "Z";
     return d;
@@ -242,8 +243,8 @@ export function voronoiCellsWithWavyEdges(
     const n = pts.length;
     if (n < 2) return "";
     if (n === 2)
-      return `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]} `;
-    let d = `M ${pts[0][0]} ${pts[0][1]} `;
+      return svg`M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]} `;
+    let d = svg`M ${pts[0][0]} ${pts[0][1]} `;
     for (let index = 1; index < n - 1; index++) {
       const current = pts[index];
       const next = pts[index + 1];
@@ -251,9 +252,9 @@ export function voronoiCellsWithWavyEdges(
         (current[0] + next[0]) / 2,
         (current[1] + next[1]) / 2,
       ];
-      d += `Q ${current[0]} ${current[1]} ${mid[0]} ${mid[1]} `;
+      d += svg`Q ${current[0]} ${current[1]} ${mid[0]} ${mid[1]} `;
     }
-    d += `L ${pts[n - 1][0]} ${pts[n - 1][1]} `;
+    d += svg`L ${pts[n - 1][0]} ${pts[n - 1][1]} `;
     return d;
   }
 
@@ -263,18 +264,18 @@ export function voronoiCellsWithWavyEdges(
   function straightClosedPath(pts: Polygon): string {
     const n = pts.length;
     if (n < 3) return "";
-    let d = `M ${pts[0][0]} ${pts[0][1]} `;
+    let d = svg`M ${pts[0][0]} ${pts[0][1]} `;
     for (let index = 1; index < n; index++)
-      d += `L ${pts[index][0]} ${pts[index][1]} `;
+      d += svg`L ${pts[index][0]} ${pts[index][1]} `;
     d += "Z";
     return d;
   }
   function straightOpenPath(pts: Polygon): string {
     const n = pts.length;
     if (n < 2) return "";
-    let d = `M ${pts[0][0]} ${pts[0][1]} `;
+    let d = svg`M ${pts[0][0]} ${pts[0][1]} `;
     for (let index = 1; index < n; index++)
-      d += `L ${pts[index][0]} ${pts[index][1]} `;
+      d += svg`L ${pts[index][0]} ${pts[index][1]} `;
     return d;
   }
 

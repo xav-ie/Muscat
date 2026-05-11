@@ -1,4 +1,5 @@
 import { SVG_NS, LINE_W, layers } from "../state.js";
+import { svg } from "../svg/template.js";
 import { random as rng } from "../util/rng.js";
 import { voronoiCellsWithWavyEdges } from "./voronoi.js";
 import type { Point } from "./voronoi.js";
@@ -103,11 +104,11 @@ function ribbonPath(
     top.push([pts[index][0] + nx * halfW, pts[index][1] + ny * halfW]);
     bot.push([pts[index][0] - nx * halfW, pts[index][1] - ny * halfW]);
   }
-  let d = `M ${top[0][0]} ${top[0][1]} `;
+  let d = svg`M ${top[0][0]} ${top[0][1]} `;
   for (let index = 1; index < n; index++)
-    d += `L ${top[index][0]} ${top[index][1]} `;
+    d += svg`L ${top[index][0]} ${top[index][1]} `;
   for (let index = n - 1; index >= 0; index--)
-    d += `L ${bot[index][0]} ${bot[index][1]} `;
+    d += svg`L ${bot[index][0]} ${bot[index][1]} `;
   d += "Z";
   return d;
 }

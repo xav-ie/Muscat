@@ -1,4 +1,5 @@
 import { SVG_NS, board, G } from "./state.js";
+import { svg } from "./svg/template.js";
 import { freshSeed } from "./util/rng.js";
 import { get2dContext } from "./util/canvas-layer.js";
 import { render } from "./render.js";
@@ -67,8 +68,8 @@ async function exportPng(dpi = 300): Promise<void> {
   // Clone the SVG so we can stamp explicit width/height without disturbing the
   // live one; the inline style + base64 font ride along automatically.
   const clone = board.cloneNode(true) as SVGSVGElement;
-  clone.setAttribute("width", `${widthIn}in`);
-  clone.setAttribute("height", `${heightIn}in`);
+  clone.setAttribute("width", svg`${widthIn}in`);
+  clone.setAttribute("height", svg`${heightIn}in`);
   clone.setAttribute("xmlns", SVG_NS);
 
   const xml = new XMLSerializer().serializeToString(clone);
@@ -104,7 +105,7 @@ async function exportPng(dpi = 300): Promise<void> {
       }, "image/png");
     });
     const a = document.createElement("a");
-    a.download = `board-12x18-${dpi}dpi.png`;
+    a.download = svg`board-12x18-${dpi}dpi.png`;
     a.href = URL.createObjectURL(pngBlob);
     a.click();
     URL.revokeObjectURL(a.href);

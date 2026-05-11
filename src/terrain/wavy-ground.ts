@@ -1,4 +1,5 @@
 import { layers } from "../state.js";
+import { svg } from "../svg/template.js";
 import { svgPath } from "../svg/primitives.js";
 
 // Continuous wavy ground: a single shape spanning the banner with a top
@@ -33,10 +34,10 @@ export function wavyGround(
   }
   // Build path: top wavy edge left-to-right, then down to bottom-right
   // corner, across to bottom-left, close.
-  let d = `M ${pts[0][0]} ${pts[0][1]} `;
+  let d = svg`M ${pts[0][0]} ${pts[0][1]} `;
   for (let index = 1; index < pts.length; index++) {
-    d += `L ${pts[index][0]} ${pts[index][1]} `;
+    d += svg`L ${pts[index][0]} ${pts[index][1]} `;
   }
-  d += `L ${x + w} ${y + h} L ${x} ${y + h} Z`;
+  d += svg`L ${x + w} ${y + h} L ${x} ${y + h} Z`;
   layers.shapes.append(svgPath(d, { fill: fillColor }));
 }

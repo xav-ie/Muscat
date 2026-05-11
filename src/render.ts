@@ -1,5 +1,6 @@
 import { SVG_NS, LINE_W, G, layers, getDefs } from "./state.js";
 import { reseed } from "./util/rng.js";
+import { svg } from "./svg/template.js";
 import { svgPath } from "./svg/primitives.js";
 import { clear, setupLayers, ensureSvgFont } from "./svg/filters.js";
 import { resetTintRegistry } from "./components/icon-square.js";
@@ -101,12 +102,12 @@ export function render(): void {
   const bodyR = tR - titleTailLength;
   // Path: start at top-left tail tip, around clockwise.
   const bannerPath =
-    `M ${tL} ${tT} ` + // top-left tail tip
-    `L ${tR} ${tT} ` + // → top-right tail tip
-    `L ${bodyR + titleNotch} ${tM} ` + // ↘ inward to right notch tip
-    `L ${tR} ${tB} ` + // ↘ to bottom-right tail tip
-    `L ${tL} ${tB} ` + // ← along bottom
-    `L ${bodyL - titleNotch} ${tM} ` + // ↗ inward to left notch tip
+    svg`M ${tL} ${tT} ` + // top-left tail tip
+    svg`L ${tR} ${tT} ` + // → top-right tail tip
+    svg`L ${bodyR + titleNotch} ${tM} ` + // ↘ inward to right notch tip
+    svg`L ${tR} ${tB} ` + // ↘ to bottom-right tail tip
+    svg`L ${tL} ${tB} ` + // ← along bottom
+    svg`L ${bodyL - titleNotch} ${tM} ` + // ↗ inward to left notch tip
     `Z`; // back to start
   // Subtle drop shadow under the banner so it reads as a separate object
   // floating above the castle wall.

@@ -1,4 +1,5 @@
 import { SVG_NS, LINE_W, layers } from "../state.js";
+import { svg } from "../svg/template.js";
 import { random as rng } from "../util/rng.js";
 import { jitterColor, mixColors } from "../util/color.js";
 import { svgPath, svgRect } from "../svg/primitives.js";
@@ -111,10 +112,10 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
       const py = crestY - amp * noise;
       pts.push([px, py]);
     }
-    let d = `M ${x} ${y + h} L ${pts[0][0]} ${pts[0][1]} `;
+    let d = svg`M ${x} ${y + h} L ${pts[0][0]} ${pts[0][1]} `;
     for (let index = 1; index < pts.length; index++)
-      d += `L ${pts[index][0]} ${pts[index][1]} `;
-    d += `L ${x + w} ${y + h} Z`;
+      d += svg`L ${pts[index][0]} ${pts[index][1]} `;
+    d += svg`L ${x + w} ${y + h} Z`;
     return { pts, d, color };
   }
 
@@ -267,7 +268,7 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
       element.setAttribute("cy", String(ly));
       element.setAttribute("rx", String(rx));
       element.setAttribute("ry", String(ry));
-      element.setAttribute("transform", `rotate(${angle} ${lx} ${ly})`);
+      element.setAttribute("transform", svg`rotate(${angle} ${lx} ${ly})`);
       element.setAttribute("fill", color);
       layers.shapes.append(element);
     }
@@ -304,9 +305,9 @@ export function grassTuftOnGround(
     const ctrl2X = bx + halfBase + (tipX - (bx + halfBase)) * 0.4;
     const ctrl2Y = by + (tipY - by) * 0.5;
     const d =
-      `M ${bx - halfBase} ${by} ` +
-      `Q ${ctrl1X} ${ctrl1Y} ${tipX} ${tipY} ` +
-      `Q ${ctrl2X} ${ctrl2Y} ${bx + halfBase} ${by} ` +
+      svg`M ${bx - halfBase} ${by} ` +
+      svg`Q ${ctrl1X} ${ctrl1Y} ${tipX} ${tipY} ` +
+      svg`Q ${ctrl2X} ${ctrl2Y} ${bx + halfBase} ${by} ` +
       `Z`;
     // Tonal striation: mix between darkColor and lightColor with a
     // power-distributed t (skewed toward dark — most blades are
@@ -330,7 +331,7 @@ export function drawFlower(
   // 1. Stem — single quadratic curve so it leans slightly
   const stemCtrlX = (gx + headX) / 2 + (rng() - 0.5) * 0.5;
   const stemCtrlY = (gy + headY) / 2;
-  const stemD = `M ${gx} ${gy} Q ${stemCtrlX} ${stemCtrlY} ${headX} ${headY}`;
+  const stemD = svg`M ${gx} ${gy} Q ${stemCtrlX} ${stemCtrlY} ${headX} ${headY}`;
   layers.shapes.append(
     svgPath(stemD, {
       fill: "none",
@@ -354,7 +355,7 @@ export function drawFlower(
     ellipse.setAttribute("ry", String(petalRy));
     // Rotate the petal so its long axis points outward from the center
     const deg = (a * 180) / Math.PI + 90;
-    ellipse.setAttribute("transform", `rotate(${deg} ${px} ${py})`);
+    ellipse.setAttribute("transform", svg`rotate(${deg} ${px} ${py})`);
     ellipse.setAttribute("fill", hue.petal);
     layers.shapes.append(ellipse);
   }

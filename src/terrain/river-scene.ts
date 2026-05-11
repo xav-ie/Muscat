@@ -1,13 +1,14 @@
 import { LINE_W, layers } from "../state.js";
+import { svg } from "../svg/template.js";
 import { random as rng } from "../util/rng.js";
 import { svgPath } from "../svg/primitives.js";
 import { wave } from "./scatter.js";
 
 // Build an SVG path "M x y L x y L x y …" from a list of points.
 function buildEdgePath(pts: [number, number][]): string {
-  let d = `M ${pts[0][0]} ${pts[0][1]} `;
+  let d = svg`M ${pts[0][0]} ${pts[0][1]} `;
   for (let index = 1; index < pts.length; index++)
-    d += `L ${pts[index][0]} ${pts[index][1]} `;
+    d += svg`L ${pts[index][0]} ${pts[index][1]} `;
   return d;
 }
 
@@ -52,28 +53,28 @@ export function riverScene(x: number, y: number, w: number, h: number): void {
   }
 
   // 1. SAND on top — a polygon from banner top to river top edge
-  let dSand = `M ${x} ${y} L ${x + w} ${y} `;
+  let dSand = svg`M ${x} ${y} L ${x + w} ${y} `;
   for (let index = topPts.length - 1; index >= 0; index--) {
-    dSand += `L ${topPts[index][0]} ${topPts[index][1]} `;
+    dSand += svg`L ${topPts[index][0]} ${topPts[index][1]} `;
   }
   dSand += "Z";
   layers.shapes.append(svgPath(dSand, { fill: SAND }));
 
   // 2. MUD on bottom — banner bottom up to river bottom edge
-  let dMud = `M ${x} ${y + h} L ${x + w} ${y + h} `;
+  let dMud = svg`M ${x} ${y + h} L ${x + w} ${y + h} `;
   for (let index = botPts.length - 1; index >= 0; index--) {
-    dMud += `L ${botPts[index][0]} ${botPts[index][1]} `;
+    dMud += svg`L ${botPts[index][0]} ${botPts[index][1]} `;
   }
   dMud += "Z";
   layers.shapes.append(svgPath(dMud, { fill: MUD }));
 
   // 3. RIVER body — between top and bottom edges
-  let dRiver = `M ${topPts[0][0]} ${topPts[0][1]} `;
+  let dRiver = svg`M ${topPts[0][0]} ${topPts[0][1]} `;
   for (let index = 1; index < topPts.length; index++) {
-    dRiver += `L ${topPts[index][0]} ${topPts[index][1]} `;
+    dRiver += svg`L ${topPts[index][0]} ${topPts[index][1]} `;
   }
   for (let index = botPts.length - 1; index >= 0; index--) {
-    dRiver += `L ${botPts[index][0]} ${botPts[index][1]} `;
+    dRiver += svg`L ${botPts[index][0]} ${botPts[index][1]} `;
   }
   dRiver += "Z";
   layers.shapes.append(svgPath(dRiver, { fill: RIVER_BLUE }));

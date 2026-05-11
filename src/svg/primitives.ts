@@ -1,4 +1,5 @@
 import { SVG_NS, LINE_W } from "../state.js";
+import { svg } from "./template.js";
 
 // ─────────────────────────────────────────────────────────────────────
 // Plain-SVG drawing helpers — no rough.js.  All "hand-drawn" character
@@ -100,18 +101,18 @@ export function roundedRectPath(
 ): string {
   r = Math.max(0, Math.min(r, w / 2, h / 2));
   if (r === 0) {
-    return `M ${x} ${y} H ${x + w} V ${y + h} H ${x} Z`;
+    return svg`M ${x} ${y} H ${x + w} V ${y + h} H ${x} Z`;
   }
   return [
-    `M ${x + r} ${y}`,
-    `H ${x + w - r}`,
-    `Q ${x + w} ${y} ${x + w} ${y + r}`,
-    `V ${y + h - r}`,
-    `Q ${x + w} ${y + h} ${x + w - r} ${y + h}`,
-    `H ${x + r}`,
-    `Q ${x} ${y + h} ${x} ${y + h - r}`,
-    `V ${y + r}`,
-    `Q ${x} ${y} ${x + r} ${y}`,
+    svg`M ${x + r} ${y}`,
+    svg`H ${x + w - r}`,
+    svg`Q ${x + w} ${y} ${x + w} ${y + r}`,
+    svg`V ${y + h - r}`,
+    svg`Q ${x + w} ${y + h} ${x + w - r} ${y + h}`,
+    svg`H ${x + r}`,
+    svg`Q ${x} ${y + h} ${x} ${y + h - r}`,
+    svg`V ${y + r}`,
+    svg`Q ${x} ${y} ${x + r} ${y}`,
     "Z",
   ].join(" ");
 }
@@ -143,58 +144,58 @@ export function squareWithArrowPath(
     xR = x + size,
     yT = y,
     yB = y + size;
-  const parts = [`M ${xL + r} ${yT}`];
+  const parts = [svg`M ${xL + r} ${yT}`];
 
   // --- TOP EDGE (left → right) ---
   if (arrowDirection === "up") {
     parts.push(
-      `H ${xL + mid - arrowHalf}`,
-      `L ${xL + mid} ${yT - arrowLength}`,
-      `L ${xL + mid + arrowHalf} ${yT}`,
-      `H ${xR - r}`,
+      svg`H ${xL + mid - arrowHalf}`,
+      svg`L ${xL + mid} ${yT - arrowLength}`,
+      svg`L ${xL + mid + arrowHalf} ${yT}`,
+      svg`H ${xR - r}`,
     );
   } else {
-    parts.push(`H ${xR - r}`);
+    parts.push(svg`H ${xR - r}`);
   }
-  parts.push(`Q ${xR} ${yT} ${xR} ${yT + r}`); // top-right corner
+  parts.push(svg`Q ${xR} ${yT} ${xR} ${yT + r}`); // top-right corner
 
   // --- RIGHT EDGE (top → bottom) ---
   if (arrowDirection === "right") {
     parts.push(
-      `V ${yT + mid - arrowHalf}`,
-      `L ${xR + arrowLength} ${yT + mid}`,
-      `L ${xR} ${yT + mid + arrowHalf}`,
-      `V ${yB - r}`,
+      svg`V ${yT + mid - arrowHalf}`,
+      svg`L ${xR + arrowLength} ${yT + mid}`,
+      svg`L ${xR} ${yT + mid + arrowHalf}`,
+      svg`V ${yB - r}`,
     );
   } else {
-    parts.push(`V ${yB - r}`);
+    parts.push(svg`V ${yB - r}`);
   }
-  parts.push(`Q ${xR} ${yB} ${xR - r} ${yB}`); // bottom-right corner
+  parts.push(svg`Q ${xR} ${yB} ${xR - r} ${yB}`); // bottom-right corner
 
   // --- BOTTOM EDGE (right → left) ---
   if (arrowDirection === "down") {
     parts.push(
-      `H ${xL + mid + arrowHalf}`,
-      `L ${xL + mid} ${yB + arrowLength}`,
-      `L ${xL + mid - arrowHalf} ${yB}`,
-      `H ${xL + r}`,
+      svg`H ${xL + mid + arrowHalf}`,
+      svg`L ${xL + mid} ${yB + arrowLength}`,
+      svg`L ${xL + mid - arrowHalf} ${yB}`,
+      svg`H ${xL + r}`,
     );
   } else {
-    parts.push(`H ${xL + r}`);
+    parts.push(svg`H ${xL + r}`);
   }
-  parts.push(`Q ${xL} ${yB} ${xL} ${yB - r}`); // bottom-left corner
+  parts.push(svg`Q ${xL} ${yB} ${xL} ${yB - r}`); // bottom-left corner
 
   // --- LEFT EDGE (bottom → top) ---
   if (arrowDirection === "left") {
     parts.push(
-      `V ${yT + mid + arrowHalf}`,
-      `L ${xL - arrowLength} ${yT + mid}`,
-      `L ${xL} ${yT + mid - arrowHalf}`,
-      `V ${yT + r}`,
+      svg`V ${yT + mid + arrowHalf}`,
+      svg`L ${xL - arrowLength} ${yT + mid}`,
+      svg`L ${xL} ${yT + mid - arrowHalf}`,
+      svg`V ${yT + r}`,
     );
   } else {
-    parts.push(`V ${yT + r}`);
+    parts.push(svg`V ${yT + r}`);
   }
-  parts.push(`Q ${xL} ${yT} ${xL + r} ${yT}`, "Z");
+  parts.push(svg`Q ${xL} ${yT} ${xL + r} ${yT}`, "Z");
   return parts.join(" ");
 }

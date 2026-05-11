@@ -1,4 +1,5 @@
 import { SVG_NS, LINE_W, layers } from "../state.js";
+import { svg } from "../svg/template.js";
 import { uid } from "../util/uid.js";
 import {
   svgPath,
@@ -87,33 +88,33 @@ export function castle(x: number, y: number, w: number, h: number): void {
 
   let d = "";
   // Up the left side of the left tower, to merlon level
-  d += `M ${x} ${groundY} L ${x} ${towerTop}`;
+  d += svg`M ${x} ${groundY} L ${x} ${towerTop}`;
   // Crenellations across the left tower
   for (const [px, py] of crenellate(x, x + towerW, towerTop, towerMerlons)) {
-    d += ` L ${px} ${py}`;
+    d += svg` L ${px} ${py}`;
   }
   // Drop to body roof (merlon level), then crenellate across body
-  d += ` L ${x + towerW} ${bodyTop}`;
+  d += svg` L ${x + towerW} ${bodyTop}`;
   for (const [px, py] of crenellate(
     x + towerW,
     x + towerW + bodyW,
     bodyTop,
     bodyMerlons,
   )) {
-    d += ` L ${px} ${py}`;
+    d += svg` L ${px} ${py}`;
   }
   // Rise to right tower top, crenellate
-  d += ` L ${x + towerW + bodyW} ${towerTop}`;
+  d += svg` L ${x + towerW + bodyW} ${towerTop}`;
   for (const [px, py] of crenellate(
     x + towerW + bodyW,
     x + w,
     towerTop,
     towerMerlons,
   )) {
-    d += ` L ${px} ${py}`;
+    d += svg` L ${px} ${py}`;
   }
   // Down the right side to ground, close
-  d += ` L ${x + w} ${groundY} Z`;
+  d += svg` L ${x + w} ${groundY} Z`;
 
   // Color: castle outline (darker gray, since the towers now have a 3D
   // gradient that visually delineates them on their own).
@@ -148,7 +149,7 @@ export function castle(x: number, y: number, w: number, h: number): void {
     // patternTransform shifts the pattern's origin in viewBox space — anchor
     // the (0,0) of the tile to (originX, originY) so the first row of bricks
     // begins exactly at the merlon row.
-    pat.setAttribute("patternTransform", `translate(${originX} ${originY})`);
+    pat.setAttribute("patternTransform", svg`translate(${originX} ${originY})`);
 
     // Brick body fill
     const bg = document.createElementNS(SVG_NS, "rect");
@@ -165,10 +166,10 @@ export function castle(x: number, y: number, w: number, h: number): void {
     // doubling.  Verticals: x=0 in row 1 (top half), x=brickW/2 in row 2
     // (staggered for running bond).
     const mortarD =
-      `M 0 0 L ${brickW} 0 ` + // top of row 1
-      `M 0 ${brickH} L ${brickW} ${brickH} ` + // between rows
-      `M 0 0 L 0 ${brickH} ` + // vertical row 1
-      `M ${brickW / 2} ${brickH} L ${brickW / 2} ${brickH * 2}`; // vertical row 2
+      svg`M 0 0 L ${brickW} 0 ` + // top of row 1
+      svg`M 0 ${brickH} L ${brickW} ${brickH} ` + // between rows
+      svg`M 0 0 L 0 ${brickH} ` + // vertical row 1
+      svg`M ${brickW / 2} ${brickH} L ${brickW / 2} ${brickH * 2}`; // vertical row 2
     const mortar = document.createElementNS(SVG_NS, "path");
     mortar.setAttribute("d", mortarD);
     mortar.setAttribute("stroke", BRICK_GROUT);
@@ -267,7 +268,7 @@ export function castle(x: number, y: number, w: number, h: number): void {
     for (let r = 1; r < numberRows; r++) {
       const ry = originY + r * brickH;
       if (ry >= sectionBottomY - edgeInset) break;
-      grout += `M ${originX} ${ry} L ${originX + sectionW} ${ry} `;
+      grout += svg`M ${originX} ${ry} L ${originX + sectionW} ${ry} `;
     }
     // Vertical lines: alternate offset per row (running bond).  Each row's
     // verticals span from one horizontal to the next.  We DON'T draw
@@ -282,7 +283,7 @@ export function castle(x: number, y: number, w: number, h: number): void {
       const rowOffset = r % 2 === 0 ? 0 : brickW / 2;
       for (let c = -1; c <= numberCols; c++) {
         const vx = originX + rowOffset + c * brickW;
-        grout += `M ${vx} ${ry0} L ${vx} ${ry1} `;
+        grout += svg`M ${vx} ${ry0} L ${vx} ${ry1} `;
       }
     }
     const groutPath = document.createElementNS(SVG_NS, "path");
@@ -330,7 +331,7 @@ export function castle(x: number, y: number, w: number, h: number): void {
     ];
     for (const [offset, color, opacity] of stops) {
       const s = document.createElementNS(SVG_NS, "stop");
-      s.setAttribute("offset", `${offset * 100}%`);
+      s.setAttribute("offset", svg`${offset * 100}%`);
       s.setAttribute("stop-color", color);
       set(s, "stop-opacity", opacity);
       g.append(s);
@@ -389,11 +390,11 @@ export function castle(x: number, y: number, w: number, h: number): void {
   const peakX = archX + archW / 2;
   const peakY = archY;
   const archD = [
-    `M ${archX} ${groundY}`,
-    `L ${archX} ${archY + archH * 0.45}`,
-    `Q ${archX} ${archY} ${peakX} ${peakY}`,
-    `Q ${archX + archW} ${archY} ${archX + archW} ${archY + archH * 0.45}`,
-    `L ${archX + archW} ${groundY}`,
+    svg`M ${archX} ${groundY}`,
+    svg`L ${archX} ${archY + archH * 0.45}`,
+    svg`Q ${archX} ${archY} ${peakX} ${peakY}`,
+    svg`Q ${archX + archW} ${archY} ${archX + archW} ${archY + archH * 0.45}`,
+    svg`L ${archX + archW} ${groundY}`,
   ].join(" ");
 
   // Each half-door is the full arch path, clipped to its half via a clip rect.
@@ -411,7 +412,7 @@ export function castle(x: number, y: number, w: number, h: number): void {
     // For the left half: pattern's x=0 should land at the seam, which means
     // translating the tile origin to (seamX, 0).  For the right half: same
     // (so the first divider on the inner edge is at the seam).
-    reference.setAttribute("patternTransform", `translate(${seamX} 0)`);
+    reference.setAttribute("patternTransform", svg`translate(${seamX} 0)`);
     localDefs.append(reference);
 
     const path = document.createElementNS(SVG_NS, "path");
@@ -437,11 +438,11 @@ export function castle(x: number, y: number, w: number, h: number): void {
   const fPeakX = fArchX + fArchW / 2;
   const fPeakY = fArchY;
   const frameD = [
-    `M ${fArchX} ${groundY}`,
-    `L ${fArchX} ${fArchY + fArchH * 0.45}`,
-    `Q ${fArchX} ${fArchY} ${fPeakX} ${fPeakY}`,
-    `Q ${fArchX + fArchW} ${fArchY} ${fArchX + fArchW} ${fArchY + fArchH * 0.45}`,
-    `L ${fArchX + fArchW} ${groundY}`,
+    svg`M ${fArchX} ${groundY}`,
+    svg`L ${fArchX} ${fArchY + fArchH * 0.45}`,
+    svg`Q ${fArchX} ${fArchY} ${fPeakX} ${fPeakY}`,
+    svg`Q ${fArchX + fArchW} ${fArchY} ${fArchX + fArchW} ${fArchY + fArchH * 0.45}`,
+    svg`L ${fArchX + fArchW} ${groundY}`,
   ].join(" ");
   // Filled gray (brick color)
   const frameFill = document.createElementNS(SVG_NS, "path");
@@ -466,7 +467,7 @@ export function castle(x: number, y: number, w: number, h: number): void {
     [0.6, 0],
   ] as [number, number][]) {
     const s = document.createElementNS(SVG_NS, "stop");
-    s.setAttribute("offset", `${offset * 100}%`);
+    s.setAttribute("offset", svg`${offset * 100}%`);
     s.setAttribute("stop-color", "#ffffff");
     set(s, "stop-opacity", op);
     frameHl.append(s);
@@ -552,11 +553,11 @@ export function castle(x: number, y: number, w: number, h: number): void {
   // Verticals: divider lines at every PLANK_W from seam outward.
   for (let dx = 0; seamX - dx >= archX - PLANK_W; dx += PLANK_W) {
     const px = seamX - dx;
-    plankD += `M ${px} ${archY} L ${px} ${groundY} `;
+    plankD += svg`M ${px} ${archY} L ${px} ${groundY} `;
   }
   for (let dx = PLANK_W; seamX + dx <= archX + archW + PLANK_W; dx += PLANK_W) {
     const px = seamX + dx;
-    plankD += `M ${px} ${archY} L ${px} ${groundY} `;
+    plankD += svg`M ${px} ${archY} L ${px} ${groundY} `;
   }
   // Horizontals: each plank gets its own joint y-positions.  Plank index n
   // counted from seamX (n=0 is just left of seam, n=1 just right, etc).
@@ -578,7 +579,7 @@ export function castle(x: number, y: number, w: number, h: number): void {
       // (no y-translation in patternTransform, so jy IS the viewport y).
       if (jy >= groundY) break;
       if (jy <= archY) continue;
-      dString += `M ${plankLeftX} ${jy} L ${plankRightX} ${jy} `;
+      dString += svg`M ${plankLeftX} ${jy} L ${plankRightX} ${jy} `;
     }
     return dString;
   }
@@ -663,7 +664,7 @@ export function castle(x: number, y: number, w: number, h: number): void {
     [1, "white"], // bottom: visible
   ] as [number, string][]) {
     const s = document.createElementNS(SVG_NS, "stop");
-    s.setAttribute("offset", `${offset * 100}%`);
+    s.setAttribute("offset", svg`${offset * 100}%`);
     s.setAttribute("stop-color", color);
     seamFadeGrad.append(s);
   }
@@ -701,7 +702,7 @@ export function castle(x: number, y: number, w: number, h: number): void {
       [fadeFrac, 0],
     ] as [number, number][]) {
       const s = document.createElementNS(SVG_NS, "stop");
-      s.setAttribute("offset", `${offset * 100}%`);
+      s.setAttribute("offset", svg`${offset * 100}%`);
       s.setAttribute("stop-color", DOOR_SHADOW_COLOR);
       set(s, "stop-opacity", op);
       lin.append(s);
@@ -823,10 +824,10 @@ export function castle(x: number, y: number, w: number, h: number): void {
   intBg.setAttribute("fill", INTERIOR_BRICK);
   intPat.append(intBg);
   const intMortarD =
-    `M 0 0 L ${INTERIOR_BRICK_W} 0 ` +
-    `M 0 ${INTERIOR_BRICK_H} L ${INTERIOR_BRICK_W} ${INTERIOR_BRICK_H} ` +
-    `M 0 0 L 0 ${INTERIOR_BRICK_H} ` +
-    `M ${INTERIOR_BRICK_W / 2} ${INTERIOR_BRICK_H} L ${INTERIOR_BRICK_W / 2} ${INTERIOR_BRICK_H * 2}`;
+    svg`M 0 0 L ${INTERIOR_BRICK_W} 0 ` +
+    svg`M 0 ${INTERIOR_BRICK_H} L ${INTERIOR_BRICK_W} ${INTERIOR_BRICK_H} ` +
+    svg`M 0 0 L 0 ${INTERIOR_BRICK_H} ` +
+    svg`M ${INTERIOR_BRICK_W / 2} ${INTERIOR_BRICK_H} L ${INTERIOR_BRICK_W / 2} ${INTERIOR_BRICK_H * 2}`;
   const intMortar = document.createElementNS(SVG_NS, "path");
   intMortar.setAttribute("d", intMortarD);
   intMortar.setAttribute("stroke", INTERIOR_GROUT);
