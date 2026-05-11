@@ -9,6 +9,29 @@ export function get2dContext(canvas: HTMLCanvasElement): CanvasRenderingContext2
   return context;
 }
 
+export interface PxCanvas {
+  canvas: HTMLCanvasElement;
+  context: CanvasRenderingContext2D;
+  img: ImageData;
+  data: Uint8ClampedArray;
+  W: number;
+  H: number;
+}
+
+// Allocate an off-screen canvas sized in pixels-per-mm. Returns the canvas,
+// its 2D context, a blank ImageData buffer, and the resolved W/H. Used by
+// any rasterizer that bakes a per-pixel field and embeds it as <image>.
+export function createPxCanvas(w: number, h: number, pxPerMm = 4): PxCanvas {
+  const W = Math.max(1, Math.round(w * pxPerMm));
+  const H = Math.max(1, Math.round(h * pxPerMm));
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const context = get2dContext(canvas);
+  const img = context.createImageData(W, H);
+  return { canvas, context, img, data: img.data, W, H };
+}
+
 // Bake an HTMLCanvasElement to a data URL and embed it as an SVG <image>
 // with absolute positioning (preserveAspectRatio='none' so it stretches to
 // the requested rect).  Used by magmaRocks, crackedDesert (no — uses paths),

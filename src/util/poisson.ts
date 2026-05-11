@@ -19,22 +19,20 @@ export function poissonDisk(
   const placed: [number, number][] = [];
   const minDistributionSq = minDistribution * minDistribution;
   const maxAttempts = count * attemptsPer;
+  function farEnough(cx: number, cy: number): boolean {
+    for (const [px, py] of placed) {
+      const dx = cx - px,
+        dy = cy - py;
+      if (dx * dx + dy * dy < minDistributionSq) return false;
+    }
+    return true;
+  }
   let attempts = 0;
   while (placed.length < count && attempts < maxAttempts) {
     attempts++;
     const cx = x + rngFunction() * w;
     const cy = y + rngFunction() * h;
-    let ok = true;
-    for (const [px, py] of placed) {
-      const dx = cx - px,
-        dy = cy - py;
-      if (dx * dx + dy * dy < minDistributionSq) {
-        ok = false;
-        break;
-      }
-    }
-    if (!ok) continue;
-    placed.push([cx, cy]);
+    if (farEnough(cx, cy)) placed.push([cx, cy]);
   }
   return placed;
 }

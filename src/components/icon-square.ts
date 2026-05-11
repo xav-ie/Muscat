@@ -10,6 +10,12 @@ export interface IconTheme {
   outline: string;
 }
 
+// True for hex / rgb / named colors; false for empty/null/"none". Used to
+// skip rendering layers that the theme has explicitly turned off.
+function isVisibleColor(c: string | null | undefined): boolean {
+  return !!c && c !== "none";
+}
+
 // Tint-filter registry — maps a hex color to a filter id that recolors any
 // graphic to that color while preserving its alpha channel. Used to recolor
 // the icon SVGs at render time without baking in colors at build time.
@@ -70,16 +76,11 @@ export function iconSquare(
   const path = squareWithArrowPath(x, y, size, radius, arrowDirection, arrowLength, arrowHalf);
 
   // Crisp filled underlay (uniform color regardless of grain displacement)
-  if (theme.squareFill && theme.squareFill !== "none") {
-    layers.shapes.append(
-      svgPath(path, {
-        fill: theme.squareFill,
-        stroke: "none",
-      }),
-    );
+  if (isVisibleColor(theme.squareFill)) {
+    layers.shapes.append(svgPath(path, { fill: theme.squareFill, stroke: "none" }));
   }
   // Stroked outline — wobbles via grain filter
-  if (theme.outline && theme.outline !== "none") {
+  if (isVisibleColor(theme.outline)) {
     const outlinePath = svgPath(path, {
       fill: "none",
       stroke: theme.outline,

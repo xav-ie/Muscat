@@ -101,21 +101,27 @@ export function voronoiCellsWithWavyEdges(
     [x, y + h],
   ];
 
+  // Build one Voronoi cell by half-plane clipping the bounding rect against
+  // every other seed's perpendicular bisector. Returns undefined if the cell
+  // collapses below 3 vertices (degenerate — drop it).
+  function buildOneCell(seedIndex: number, currentSeeds: Point[]): Polygon | undefined {
+    const [sx, sy] = currentSeeds[seedIndex];
+    let cell: Polygon = [...rect];
+    for (const [index_, [tx, ty]] of currentSeeds.entries()) {
+      if (seedIndex === index_) continue;
+      const mx = (sx + tx) / 2;
+      const my = (sy + ty) / 2;
+      cell = clipPolygonByHalfplane(cell, mx, my, mx - (ty - sy), my + (tx - sx), sx, sy);
+      if (cell.length < 3) return undefined;
+    }
+    return cell;
+  }
+
   function buildCells(currentSeeds: Point[]): VoronoiCell[] {
     const out: VoronoiCell[] = [];
     for (let index = 0; index < currentSeeds.length; index++) {
-      const [sx, sy] = currentSeeds[index];
-      let cell: Polygon = [...rect];
-      for (const [index_, [tx, ty]] of currentSeeds.entries()) {
-        if (index === index_) continue;
-        const mx = (sx + tx) / 2,
-          my = (sy + ty) / 2;
-        const px = mx - (ty - sy);
-        const py = my + (tx - sx);
-        cell = clipPolygonByHalfplane(cell, mx, my, px, py, sx, sy);
-        if (cell.length < 3) break;
-      }
-      if (cell.length >= 3) out.push({ seed: [sx, sy], poly: cell });
+      const cell = buildOneCell(index, currentSeeds);
+      if (cell) out.push({ seed: currentSeeds[index], poly: cell });
     }
     return out;
   }
@@ -204,10 +210,16 @@ export function voronoiCellsWithWavyEdges(
       const b = poly[(index + 1) % poly.length];
       out.push(a);
       const mids = getEdgeNoise(a, b);
-      if (isCanonicalForward(a, b)) for (const p of mids) out.push(p);
-      else for (let index = mids.length - 1; index >= 0; index--) out.push(mids[index]);
+      const ordered = isCanonicalForward(a, b) ? mids : mids.toReversed();
+      for (const p of ordered) out.push(p);
     }
     return out;
+  }
+
+  function qCurveTo(current: Point, next: Point): string {
+    const midX = (current[0] + next[0]) / 2;
+    const midY = (current[1] + next[1]) / 2;
+    return svg`Q ${current[0]} ${current[1]} ${midX} ${midY} `;
   }
 
   function smoothClosedPath(pts: Polygon): string {
@@ -216,10 +228,7 @@ export function voronoiCellsWithWavyEdges(
     const startMid: Point = [(pts[n - 1][0] + pts[0][0]) / 2, (pts[n - 1][1] + pts[0][1]) / 2];
     let d = svg`M ${startMid[0]} ${startMid[1]} `;
     for (let index = 0; index < n; index++) {
-      const current = pts[index];
-      const next = pts[(index + 1) % n];
-      const mid: Point = [(current[0] + next[0]) / 2, (current[1] + next[1]) / 2];
-      d += svg`Q ${current[0]} ${current[1]} ${mid[0]} ${mid[1]} `;
+      d += qCurveTo(pts[index], pts[(index + 1) % n]);
     }
     d += "Z";
     return d;
@@ -231,10 +240,7 @@ export function voronoiCellsWithWavyEdges(
     if (n === 2) return svg`M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]} `;
     let d = svg`M ${pts[0][0]} ${pts[0][1]} `;
     for (let index = 1; index < n - 1; index++) {
-      const current = pts[index];
-      const next = pts[index + 1];
-      const mid: Point = [(current[0] + next[0]) / 2, (current[1] + next[1]) / 2];
-      d += svg`Q ${current[0]} ${current[1]} ${mid[0]} ${mid[1]} `;
+      d += qCurveTo(pts[index], pts[index + 1]);
     }
     d += svg`L ${pts[n - 1][0]} ${pts[n - 1][1]} `;
     return d;
@@ -265,12 +271,15 @@ export function voronoiCellsWithWavyEdges(
     return [a, ...ordered, b];
   }
 
+  function bothNear(va: number, vb: number, target: number): boolean {
+    return Math.abs(va - target) < 0.5 && Math.abs(vb - target) < 0.5;
+  }
   function onBorder(a: Point, b: Point): boolean {
     return (
-      (Math.abs(a[0] - x) < 0.5 && Math.abs(b[0] - x) < 0.5) ||
-      (Math.abs(a[0] - (x + w)) < 0.5 && Math.abs(b[0] - (x + w)) < 0.5) ||
-      (Math.abs(a[1] - y) < 0.5 && Math.abs(b[1] - y) < 0.5) ||
-      (Math.abs(a[1] - (y + h)) < 0.5 && Math.abs(b[1] - (y + h)) < 0.5)
+      bothNear(a[0], b[0], x) ||
+      bothNear(a[0], b[0], x + w) ||
+      bothNear(a[1], b[1], y) ||
+      bothNear(a[1], b[1], y + h)
     );
   }
 

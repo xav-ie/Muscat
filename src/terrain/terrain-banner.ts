@@ -6,37 +6,13 @@ import { crackedDesert } from "./cracked-desert.js";
 import { waterCaustics } from "./water-caustics.js";
 import { grassScene } from "./grass-scene.js";
 
+// Section-index → terrain decoration:
+//   0 lava (magma rocks)         1 cracked desert
+//   2 water caustics             3 grass scene
+const DECORATORS = [magmaRocks, crackedDesert, waterCaustics, grassScene];
+
 function decorateBanner(s: number, x: number, y: number, w: number, h: number): void {
-  switch (s) {
-    case 0: {
-      // Lava — Voronoi rocks with glowing magma cracks between them.
-      magmaRocks(x, y, w, h);
-
-      break;
-    }
-    case 1: {
-      // Sand — cracked desert: Voronoi cells in mottled sand colors,
-      // separated by thin dark dried-mud cracks.
-      crackedDesert(x, y, w, h);
-
-      break;
-    }
-    case 2: {
-      // Sea — water caustics: two layers of sharp-minus-smooth Voronoi
-      // distance fields.  Dark blue underlay (slider-controlled) + bright
-      // white tight ridges (baked) on top.
-      waterCaustics(x, y, w, h);
-
-      break;
-    }
-    case 3: {
-      // Grass row: mounds, scattered tufts, flowers
-      grassScene(x, y, w, h);
-
-      break;
-    }
-    // No default
-  }
+  DECORATORS[s]?.(x, y, w, h);
 }
 
 // Themed terrain banner — a filled rounded rectangle with a colored outline,

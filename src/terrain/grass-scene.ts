@@ -23,6 +23,12 @@ function crestYFunction(crest: Point[]): CrestFunction {
   return (px: number) => crestYAt(crest, px);
 }
 
+// Promote a constant or a callable into a CrestFunction, so callers can
+// pass either form uniformly.
+function asCrestFunction(value: number | CrestFunction): CrestFunction {
+  return typeof value === "function" ? value : () => value;
+}
+
 // Sample y at any x along a hill's polyline. Binary search by x then linear
 // interpolate within the bracketing segment.
 function crestYAt(crest: Point[], px: number): number {
@@ -203,10 +209,8 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
     const edgeBleed = 4;
     const xMin = x - edgeBleed,
       xMax = x + w + edgeBleed;
-    const topYFunction: CrestFunction =
-      typeof topYArgument === "function" ? topYArgument : () => topYArgument;
-    const botYFunction: CrestFunction =
-      typeof botYArgument === "function" ? botYArgument : () => botYArgument;
+    const topYFunction = asCrestFunction(topYArgument);
+    const botYFunction = asCrestFunction(botYArgument);
     for (let index = 0; index < leafCount; index++) {
       const lx = xMin + rng() * (xMax - xMin);
       const xClamp = Math.max(x, Math.min(x + w, lx));
@@ -280,13 +284,7 @@ function grassTuftOnGround(
 // Draw a flower: stem from (gx,gy) to (headX,headY), then a multi-petal
 // bloom at the head.  Petals are short ellipses arranged in a ring with
 // a center disc.
-function drawFlower(
-  gx: number,
-  gy: number,
-  headX: number,
-  headY: number,
-  hue: FlowerHue,
-): void {
+function drawFlower(gx: number, gy: number, headX: number, headY: number, hue: FlowerHue): void {
   // 1. Stem — single quadratic curve so it leans slightly
   const stemCtrlX = (gx + headX) / 2 + (rng() - 0.5) * 0.5;
   const stemCtrlY = (gy + headY) / 2;

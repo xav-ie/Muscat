@@ -1,7 +1,8 @@
 import { layers } from "../state.js";
 import { random as rng } from "../util/rng.js";
 import { poissonDisk } from "../util/poisson.js";
-import { embedCanvasAsImage, get2dContext } from "../util/canvas-layer.js";
+import { createPxCanvas, embedCanvasAsImage } from "../util/canvas-layer.js";
+import { freshSineWarpPhases, sineWarpOffsets } from "../util/sine-warp.js";
 
 type RGB = [number, number, number];
 interface LayerCfg {
@@ -25,6 +26,45 @@ interface Field {
   warp: number;
 }
 
+// Visit every seed in the 5×5 bucket neighborhood around (gx, gy). The
+// bounds are clamped to the grid so the inner loops have no per-iteration
+// boundary check.
+function sweepBuckets(
+  field: Field,
+  gx: number,
+  gy: number,
+  visit: (sx: number, sy: number) => void,
+): void {
+  const y0 = Math.max(0, gy - 2);
+  const y1 = Math.min(field.gridRows - 1, gy + 2);
+  const x0 = Math.max(0, gx - 2);
+  const x1 = Math.min(field.gridCols - 1, gx + 2);
+  for (let ggy = y0; ggy <= y1; ggy++) {
+    for (let ggx = x0; ggx <= x1; ggx++) {
+      for (const [sx, sy] of field.grid[ggy * field.gridCols + ggx]) visit(sx, sy);
+    }
+  }
+}
+
+// Compute the threshold-mask `m` (0..1) for one field at a sample point.
+function fieldMask(field: Field, wux: number, wuy: number): number {
+  let d1 = Infinity;
+  let sumExp = 0;
+  const accumulate = (sx: number, sy: number): void => {
+    const d = Math.hypot(wux - sx, wuy - sy);
+    if (d < d1) d1 = d;
+    sumExp += Math.exp(-d / field.smoothness);
+  };
+  const gx = Math.min(field.gridCols - 1, Math.max(0, Math.floor(wux / field.bucketSize)));
+  const gy = Math.min(field.gridRows - 1, Math.max(0, Math.floor(wuy / field.bucketSize)));
+  sweepBuckets(field, gx, gy, accumulate);
+  if (sumExp <= 0) for (const [sx, sy] of field.seeds) accumulate(sx, sy);
+  const d2 = -field.smoothness * Math.log(sumExp);
+  const edge = (d1 - d2) / field.smoothness;
+  const m = Math.max(0, Math.min(1, (edge - field.thrLo) / (field.thrHi - field.thrLo)));
+  return m * m * (3 - 2 * m);
+}
+
 // Water caustics — implements the "sharp F1 minus smooth F1" Voronoi trick
 // from the shader-graph technique:
 //   1. Distort UV with a couple sine octaves (stand-in for Musgrave fBM)
@@ -38,18 +78,9 @@ interface Field {
 // per-pixel math runs once at render time and the result composites with
 // the rest of the SVG.
 export function waterCaustics(x: number, y: number, w: number, h: number): void {
-  // Render resolution — 4x the banner dimensions in mm, so each mm has
-  // 4 pixels.  Higher = sharper caustics, but more work.  We're in a
-  // banner ~285x35mm so this is ~1140x140px = 160k pixels — fast.
-  const PX_PER_MM = 4;
-  const W = Math.max(1, Math.round(w * PX_PER_MM));
-  const H = Math.max(1, Math.round(h * PX_PER_MM));
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
-  const context = get2dContext(canvas);
-  const img = context.createImageData(W, H);
-  const data = img.data;
+  // Render resolution — 4 px / mm.  Higher = sharper caustics, but more
+  // work.  Banner ~285x35mm → ~1140x140px = 160k pixels.
+  const { canvas, context, img, data, W, H } = createPxCanvas(w, h);
 
   // ── Two-layer caustics ──────────────────────────────────────────────
   // 1. UNDER (dark blue): wider, softer, deeper-blue rim.
@@ -107,57 +138,10 @@ export function waterCaustics(x: number, y: number, w: number, h: number): void 
 
   // UV warp parameters — shared sine phases (so both layers warp from the
   // same noise field) but each layer chooses its OWN amplitude.
-  const ph1x = rng() * Math.PI * 2;
-  const ph1y = rng() * Math.PI * 2;
-  const ph2x = rng() * Math.PI * 2;
-  const ph2y = rng() * Math.PI * 2;
+  const warpPhases = freshSineWarpPhases(rng);
   function warpUV(px: number, py: number, amp: number): [number, number] {
-    const u = px / W,
-      v = py / H;
-    const A1 = amp;
-    const A2 = A1 * 0.33;
-    const wx = Math.sin(u * 8 + v * 6 + ph1x) * A1 + Math.sin(u * 21 - v * 11 + ph2x) * A2;
-    const wy = Math.sin(v * 8 + u * 6 + ph1y) * A1 + Math.sin(v * 21 - u * 11 + ph2y) * A2;
+    const [wx, wy] = sineWarpOffsets(px / W, py / H, amp, warpPhases);
     return [px + wx * W, py + wy * H];
-  }
-
-  // Compute the threshold-mask `m` (0..1) for one field at a sample point.
-  function fieldMask(field: Field, wux: number, wuy: number): number {
-    const gx = Math.min(field.gridCols - 1, Math.max(0, Math.floor(wux / field.bucketSize)));
-    const gy = Math.min(field.gridRows - 1, Math.max(0, Math.floor(wuy / field.bucketSize)));
-    let d1 = Infinity;
-    let sumExp = 0;
-    for (let dy = -2; dy <= 2; dy++) {
-      const ggy = gy + dy;
-      if (ggy < 0 || ggy >= field.gridRows) continue;
-      for (let dx = -2; dx <= 2; dx++) {
-        const ggx = gx + dx;
-        if (ggx < 0 || ggx >= field.gridCols) continue;
-        const bucket = field.grid[ggy * field.gridCols + ggx];
-        for (const [sx, sy] of bucket) {
-          const ddx = wux - sx,
-            ddy = wuy - sy;
-          const d = Math.hypot(ddx, ddy);
-          if (d < d1) d1 = d;
-          sumExp += Math.exp(-d / field.smoothness);
-        }
-      }
-    }
-    if (sumExp <= 0) {
-      for (const [sx, sy] of field.seeds) {
-        const ddx = wux - sx,
-          ddy = wuy - sy;
-        const d = Math.hypot(ddx, ddy);
-        if (d < d1) d1 = d;
-        sumExp += Math.exp(-d / field.smoothness);
-      }
-    }
-    const d2 = -field.smoothness * Math.log(sumExp);
-    const edge = (d1 - d2) / field.smoothness;
-    let m = (edge - field.thrLo) / (field.thrHi - field.thrLo);
-    if (m < 0) m = 0;
-    else if (m > 1) m = 1;
-    return m * m * (3 - 2 * m);
   }
 
   // Caustic look parameters

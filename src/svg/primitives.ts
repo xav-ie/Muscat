@@ -118,6 +118,18 @@ export type ArrowDirection = "up" | "down" | "left" | "right";
 // Path is traversed clockwise; arrow protrusions break the side into:
 // "side-up-to-base-corner → out to apex → back to other-base-corner →
 //  continue along side".  Non-arrow sides traverse normally.
+// Emit one edge of squareWithArrowPath. When `active`, draw a notched arrow
+// detour (in→peak→out then continue to `end`); otherwise just draw to `end`.
+function edgeWithOptionalArrow(
+  active: boolean,
+  detourIn: string,
+  peak: string,
+  detourOut: string,
+  end: string,
+): string[] {
+  return active ? [detourIn, peak, detourOut, end] : [end];
+}
+
 export function squareWithArrowPath(
   x: number,
   y: number,
@@ -134,58 +146,45 @@ export function squareWithArrowPath(
     xR = x + size,
     yT = y,
     yB = y + size;
-  const parts = [svg`M ${xL + r} ${yT}`];
-
-  // --- TOP EDGE (left → right) ---
-  if (arrowDirection === "up") {
-    parts.push(
+  const parts: string[] = [
+    svg`M ${xL + r} ${yT}`,
+    // TOP (left → right)
+    ...edgeWithOptionalArrow(
+      arrowDirection === "up",
       svg`H ${xL + mid - arrowHalf}`,
       svg`L ${xL + mid} ${yT - arrowLength}`,
       svg`L ${xL + mid + arrowHalf} ${yT}`,
       svg`H ${xR - r}`,
-    );
-  } else {
-    parts.push(svg`H ${xR - r}`);
-  }
-  parts.push(svg`Q ${xR} ${yT} ${xR} ${yT + r}`); // top-right corner
-
-  // --- RIGHT EDGE (top → bottom) ---
-  if (arrowDirection === "right") {
-    parts.push(
+    ),
+    svg`Q ${xR} ${yT} ${xR} ${yT + r}`,
+    // RIGHT (top → bottom)
+    ...edgeWithOptionalArrow(
+      arrowDirection === "right",
       svg`V ${yT + mid - arrowHalf}`,
       svg`L ${xR + arrowLength} ${yT + mid}`,
       svg`L ${xR} ${yT + mid + arrowHalf}`,
       svg`V ${yB - r}`,
-    );
-  } else {
-    parts.push(svg`V ${yB - r}`);
-  }
-  parts.push(svg`Q ${xR} ${yB} ${xR - r} ${yB}`); // bottom-right corner
-
-  // --- BOTTOM EDGE (right → left) ---
-  if (arrowDirection === "down") {
-    parts.push(
+    ),
+    svg`Q ${xR} ${yB} ${xR - r} ${yB}`,
+    // BOTTOM (right → left)
+    ...edgeWithOptionalArrow(
+      arrowDirection === "down",
       svg`H ${xL + mid + arrowHalf}`,
       svg`L ${xL + mid} ${yB + arrowLength}`,
       svg`L ${xL + mid - arrowHalf} ${yB}`,
       svg`H ${xL + r}`,
-    );
-  } else {
-    parts.push(svg`H ${xL + r}`);
-  }
-  parts.push(svg`Q ${xL} ${yB} ${xL} ${yB - r}`); // bottom-left corner
-
-  // --- LEFT EDGE (bottom → top) ---
-  if (arrowDirection === "left") {
-    parts.push(
+    ),
+    svg`Q ${xL} ${yB} ${xL} ${yB - r}`,
+    // LEFT (bottom → top)
+    ...edgeWithOptionalArrow(
+      arrowDirection === "left",
       svg`V ${yT + mid + arrowHalf}`,
       svg`L ${xL - arrowLength} ${yT + mid}`,
       svg`L ${xL} ${yT + mid - arrowHalf}`,
       svg`V ${yT + r}`,
-    );
-  } else {
-    parts.push(svg`V ${yT + r}`);
-  }
-  parts.push(svg`Q ${xL} ${yT} ${xL + r} ${yT}`, "Z");
+    ),
+    svg`Q ${xL} ${yT} ${xL + r} ${yT}`,
+    "Z",
+  ];
   return parts.join(" ");
 }

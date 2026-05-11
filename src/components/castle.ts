@@ -40,22 +40,20 @@ export function castle(x: number, y: number, w: number, h: number): void {
     topY: number,
     merlonCount: number,
   ): [number, number][] {
-    const span = x1 - x0;
     const segCount = 2 * merlonCount - 1; // M C M C ... M
-    const segW = span / segCount;
+    const segW = (x1 - x0) / segCount;
     const merlonY = topY; // top of merlon
     const crenelY = topY + merlonH; // floor of crenel
-    const pts: [number, number][] = [];
+    // Seed with the very first point so the loop body has uniform shape.
+    const pts: [number, number][] = [[x0, merlonY]];
     for (let index = 0; index < segCount; index++) {
-      const segStart = x0 + index * segW;
-      const segEnd = segStart + segW;
+      const segEnd = x0 + (index + 1) * segW;
       const isMerlon = index % 2 === 0;
       const ey = isMerlon ? merlonY : crenelY;
-      if (index === 0) pts.push([segStart, ey]);
+      const stepY = isMerlon ? crenelY : merlonY;
       pts.push([segEnd, ey]);
-      if (index < segCount - 1) {
-        pts.push([segEnd, isMerlon ? crenelY : merlonY]); // vertical step
-      }
+      // Vertical step into the next segment (skip after the final segment).
+      if (index < segCount - 1) pts.push([segEnd, stepY]);
     }
     return pts;
   }
@@ -78,25 +76,25 @@ export function castle(x: number, y: number, w: number, h: number): void {
   const bodyMerlons = (bodySegCount + 1) / 2;
   const bodyBrickW = bodyW / bodySegCount;
 
-  let d = "";
-  // Up the left side of the left tower, to merlon level
-  d += svg`M ${x} ${groundY} L ${x} ${towerTop}`;
-  // Crenellations across the left tower
-  for (const [px, py] of crenellate(x, x + towerW, towerTop, towerMerlons)) {
-    d += svg` L ${px} ${py}`;
+  // Build full outline as a single path so rough.js draws a unified
+  // silhouette. Side walls reach all the way up to merlon level so the
+  // corners ARE merlons, not crenels.
+  function buildSilhouettePath(): string {
+    let result = svg`M ${x} ${groundY} L ${x} ${towerTop}`;
+    for (const [px, py] of crenellate(x, x + towerW, towerTop, towerMerlons)) {
+      result += svg` L ${px} ${py}`;
+    }
+    result += svg` L ${x + towerW} ${bodyTop}`;
+    for (const [px, py] of crenellate(x + towerW, x + towerW + bodyW, bodyTop, bodyMerlons)) {
+      result += svg` L ${px} ${py}`;
+    }
+    result += svg` L ${x + towerW + bodyW} ${towerTop}`;
+    for (const [px, py] of crenellate(x + towerW + bodyW, x + w, towerTop, towerMerlons)) {
+      result += svg` L ${px} ${py}`;
+    }
+    return result + svg` L ${x + w} ${groundY} Z`;
   }
-  // Drop to body roof (merlon level), then crenellate across body
-  d += svg` L ${x + towerW} ${bodyTop}`;
-  for (const [px, py] of crenellate(x + towerW, x + towerW + bodyW, bodyTop, bodyMerlons)) {
-    d += svg` L ${px} ${py}`;
-  }
-  // Rise to right tower top, crenellate
-  d += svg` L ${x + towerW + bodyW} ${towerTop}`;
-  for (const [px, py] of crenellate(x + towerW + bodyW, x + w, towerTop, towerMerlons)) {
-    d += svg` L ${px} ${py}`;
-  }
-  // Down the right side to ground, close
-  d += svg` L ${x + w} ${groundY} Z`;
+  const d = buildSilhouettePath();
 
   // Color: castle outline (darker gray, since the towers now have a 3D
   // gradient that visually delineates them on their own).
@@ -236,30 +234,41 @@ export function castle(x: number, y: number, w: number, h: number): void {
     // Tiny inset from each edge so the bricks don't paint right on the
     // silhouette outline (which causes doubled-stroke artifacts).
     const edgeInset = 0.3;
-    let grout = "";
-    // Horizontal lines: one BETWEEN each pair of brick rows.  Skip r=0
-    // (= section top) and skip any line at or beyond the section bottom.
-    for (let r = 1; r < numberRows; r++) {
-      const ry = originY + r * brickH;
-      if (ry >= sectionBottomY - edgeInset) break;
-      grout += svg`M ${originX} ${ry} L ${originX + sectionW} ${ry} `;
-    }
-    // Vertical lines: alternate offset per row (running bond).  Each row's
-    // verticals span from one horizontal to the next.  We DON'T draw
-    // verticals in the bottom partial row — they'd touch the silhouette
-    // outline at sectionBottomY and produce an artifact band along the
-    // bottom edge mirroring what we already fixed at the top.
-    for (let r = 0; r < numberRows; r++) {
-      const ry0 = originY + r * brickH;
-      const ry1 = ry0 + brickH;
-      // Stop if this row's bottom would land at or below the section bottom.
-      if (ry1 > sectionBottomY - edgeInset) break;
-      const rowOffset = r % 2 === 0 ? 0 : brickW / 2;
+    const bottomStop = sectionBottomY - edgeInset;
+
+    // Vertical grout lines for one brick row (running bond uses rowOffset).
+    function rowVerticals(ry0: number, ry1: number, rowOffset: number): string {
+      let s = "";
       for (let c = -1; c <= numberCols; c++) {
         const vx = originX + rowOffset + c * brickW;
-        grout += svg`M ${vx} ${ry0} L ${vx} ${ry1} `;
+        s += svg`M ${vx} ${ry0} L ${vx} ${ry1} `;
       }
+      return s;
     }
+    // Horizontal grout lines: one BETWEEN each pair of brick rows. Skip r=0
+    // (= section top) and any line at/below the section bottom.
+    function buildHorizontals(): string {
+      let s = "";
+      for (let r = 1; r < numberRows; r++) {
+        const ry = originY + r * brickH;
+        if (ry >= bottomStop) break;
+        s += svg`M ${originX} ${ry} L ${originX + sectionW} ${ry} `;
+      }
+      return s;
+    }
+    // Vertical grout: alternate offset per row (running bond). Skip the
+    // bottom partial row so verticals don't touch the silhouette outline.
+    function buildVerticals(): string {
+      let s = "";
+      for (let r = 0; r < numberRows; r++) {
+        const ry0 = originY + r * brickH;
+        const ry1 = ry0 + brickH;
+        if (ry1 > bottomStop) break;
+        s += rowVerticals(ry0, ry1, r % 2 === 0 ? 0 : brickW / 2);
+      }
+      return s;
+    }
+    const grout = buildHorizontals() + buildVerticals();
     const groutPath = document.createElementNS(SVG_NS, "path");
     groutPath.setAttribute("d", grout);
     groutPath.setAttribute("stroke", BRICK_GROUT);
@@ -508,52 +517,48 @@ export function castle(x: number, y: number, w: number, h: number): void {
   // renders as one pass (consistent thickness, no pattern artifacts).
   const PLANK_W = 6;
   const TILE_H = 24;
-  let plankD = "";
-  // Verticals: divider lines at every PLANK_W from seam outward.
-  for (let dx = 0; seamX - dx >= archX - PLANK_W; dx += PLANK_W) {
-    const px = seamX - dx;
-    plankD += svg`M ${px} ${archY} L ${px} ${groundY} `;
-  }
-  for (let dx = PLANK_W; seamX + dx <= archX + archW + PLANK_W; dx += PLANK_W) {
-    const px = seamX + dx;
-    plankD += svg`M ${px} ${archY} L ${px} ${groundY} `;
-  }
-  // Horizontals: each plank gets its own joint y-positions.  Plank index n
-  // counted from seamX (n=0 is just left of seam, n=1 just right, etc).
-  // Even-indexed planks: joints at viewport y = TILE_H, 2*TILE_H, 3*TILE_H ...
-  // Odd-indexed planks: joints at TILE_H/2, 3*TILE_H/2, 5*TILE_H/2 ...
-  // (matches the running-bond stagger from the original pattern.)
+
+  // Joint y-positions for one plank. Even-indexed planks: TILE_H, 2*TILE_H...
+  // Odd-indexed: TILE_H/2, 3*TILE_H/2... — matches the original pattern's
+  // running-bond stagger.
   function plankJoints(plankLeftX: number, plankRightX: number, parity: number): string {
-    // parity 0 = joints at TILE_H * k for k = 1, 2, 3...
-    // parity 1 = joints at TILE_H * (k + 0.5) for k = 0, 1, 2...
     let dString = "";
-    const base = parity === 0 ? 0 : TILE_H * 0.5;
-    for (let k = 0; ; k++) {
-      const jy = base + k * TILE_H + (parity === 0 ? TILE_H : 0);
-      // Convert to viewport y by anchoring with seamX-anchored pattern at y=0
-      // (no y-translation in patternTransform, so jy IS the viewport y).
-      if (jy >= groundY) break;
+    const firstJy = parity === 0 ? TILE_H : TILE_H * 0.5;
+    for (let jy = firstJy; jy < groundY; jy += TILE_H) {
       if (jy <= archY) continue;
       dString += svg`M ${plankLeftX} ${jy} L ${plankRightX} ${jy} `;
     }
     return dString;
   }
-  // Iterate planks left of seam (n = -1, -2, ...) and right of seam (n = 0, 1, 2, ...)
-  // Plank index n: x range [seamX + n * PLANK_W, seamX + (n+1) * PLANK_W]
-  // Parity: ((n % 2) + 2) % 2 — 0 for even n, 1 for odd n.
-  // Stop when plank is fully outside the door.
-  for (let n = 0; seamX + n * PLANK_W <= archX + archW; n++) {
-    const lx = seamX + n * PLANK_W;
-    const rx = lx + PLANK_W;
-    const parity = ((n % 2) + 2) % 2;
-    plankD += plankJoints(lx, rx, parity);
+
+  // Build the full plank path: verticals at every PLANK_W from the seam
+  // outward, plus per-plank horizontal joints (running-bond stagger).
+  function buildPlankPath(): string {
+    let result = "";
+    for (let dx = 0; seamX - dx >= archX - PLANK_W; dx += PLANK_W) {
+      const px = seamX - dx;
+      result += svg`M ${px} ${archY} L ${px} ${groundY} `;
+    }
+    for (let dx = PLANK_W; seamX + dx <= archX + archW + PLANK_W; dx += PLANK_W) {
+      const px = seamX + dx;
+      result += svg`M ${px} ${archY} L ${px} ${groundY} `;
+    }
+    // Plank index n: x range [seamX + n*PLANK_W, seamX + (n+1)*PLANK_W]. Right
+    // of seam: n = 0, 1, 2... Left of seam: n = -1, -2... Stop when plank is
+    // fully outside the door.
+    for (let n = 0; seamX + n * PLANK_W <= archX + archW; n++) {
+      const lx = seamX + n * PLANK_W;
+      const parity = ((n % 2) + 2) % 2;
+      result += plankJoints(lx, lx + PLANK_W, parity);
+    }
+    for (let n = -1; seamX + (n + 1) * PLANK_W >= archX; n--) {
+      const lx = seamX + n * PLANK_W;
+      const parity = ((n % 2) + 2) % 2;
+      result += plankJoints(lx, lx + PLANK_W, parity);
+    }
+    return result;
   }
-  for (let n = -1; seamX + (n + 1) * PLANK_W >= archX; n--) {
-    const lx = seamX + n * PLANK_W;
-    const rx = lx + PLANK_W;
-    const parity = ((n % 2) + 2) % 2;
-    plankD += plankJoints(lx, rx, parity);
-  }
+  const plankD = buildPlankPath();
 
   const plankPath = document.createElementNS(SVG_NS, "path");
   plankPath.setAttribute("d", plankD);
@@ -833,27 +838,24 @@ export function castle(x: number, y: number, w: number, h: number): void {
     );
   }
 
-  // Left set: 2x2 plain
-  const leftStartX = bodyX + bodyW * 0.07;
-  for (let r = 0; r < 2; r++) {
+  // Place a 1x2 window row. When `labelRight` is true, the right window
+  // gets a "4/5" overlay (used on the right-hand set's both rows).
+  function placeWindowRow(startX: number, rowY: number, labelRight: boolean): void {
     for (let c = 0; c < 2; c++) {
-      placeWindow(leftStartX + c * (sqSize + sqGap), r === 0 ? sqRowY1 : sqRowY2);
-    }
-  }
-
-  // Right set: 2x2 (left column plain, right column with "4/5" labels)
-  const rightStartX = bodyX + bodyW - bodyW * 0.07 - (sqSize * 2 + sqGap);
-  for (let r = 0; r < 2; r++) {
-    for (let c = 0; c < 2; c++) {
-      const sx = rightStartX + c * (sqSize + sqGap);
-      const sy = r === 0 ? sqRowY1 : sqRowY2;
-      placeWindow(sx, sy);
-      if (c === 1) {
-        edgeNumber(sx + sqSize / 2, sy + sqSize / 2, "4/5", "#ffffff", sqSize * 0.55, "middle", {
+      const sx = startX + c * (sqSize + sqGap);
+      placeWindow(sx, rowY);
+      if (labelRight && c === 1) {
+        edgeNumber(sx + sqSize / 2, rowY + sqSize / 2, "4/5", "#ffffff", sqSize * 0.55, "middle", {
           color: WINDOW_OUTLINE,
           width: LINE_W * 2,
         });
       }
     }
   }
+  function placeWindowGrid(startX: number, labelRightColumn: boolean): void {
+    placeWindowRow(startX, sqRowY1, labelRightColumn);
+    placeWindowRow(startX, sqRowY2, labelRightColumn);
+  }
+  placeWindowGrid(bodyX + bodyW * 0.07, false);
+  placeWindowGrid(bodyX + bodyW - bodyW * 0.07 - (sqSize * 2 + sqGap), true);
 }

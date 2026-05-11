@@ -1,6 +1,7 @@
 import { layers } from "../state.js";
 import { random as rng } from "../util/rng.js";
-import { embedCanvasAsImage, get2dContext } from "../util/canvas-layer.js";
+import { createPxCanvas, embedCanvasAsImage } from "../util/canvas-layer.js";
+import { freshSineWarpPhases, sineWarpOffsets } from "../util/sine-warp.js";
 
 // Hermite smoothstep — clamps `t` into [a, b] then maps to a cubic ease curve.
 function smoothstep(a: number, b: number, t: number): number {
@@ -8,6 +9,26 @@ function smoothstep(a: number, b: number, t: number): number {
   if (x < 0) x = 0;
   else if (x > 1) x = 1;
   return x * x * (3 - 2 * x);
+}
+
+// Signed distance from the cell's seed offset (coX, coY) to the perpendicular
+// bisector between it and the neighbor at (cox, coy). Returns `null` when the
+// neighbor IS the seed (degenerate) so callers can skip it.
+function distanceToBisector(
+  cox: number,
+  coy: number,
+  coX: number,
+  coY: number,
+): number | undefined {
+  const dx = cox - coX,
+    dy = coy - coY;
+  const dlen = Math.hypot(dx, dy);
+  if (dlen < 1e-6) return undefined;
+  const nx = dx / dlen,
+    ny = dy / dlen;
+  const midX = 0.5 * (coX + cox);
+  const midY = 0.5 * (coY + coy);
+  return midX * nx + midY * ny;
 }
 
 // Lava — implements the Voronoi `DistFromEdge` technique from Inigo Quilez
@@ -36,16 +57,8 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   const edgeSmooth = 0 as number; // tuning knob — set >0 to enable smooth-min cell edges
   const wobble = 0.06;
 
-  // Render resolution — 4 px / mm, same as water
-  const PX_PER_MM = 4;
-  const W = Math.max(1, Math.round(w * PX_PER_MM));
-  const H = Math.max(1, Math.round(h * PX_PER_MM));
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
-  const context = get2dContext(canvas);
-  const img = context.createImageData(W, H);
-  const data = img.data;
+  // Render resolution — 4 px / mm, same as water.
+  const { canvas, context, img, data, W, H } = createPxCanvas(w, h);
 
   // Cell density expressed as cells per UV (UV is normalized 0..1 across W).
   // Use cells-per-mm * mm-per-W to land on a cells-per-UV value.
@@ -71,16 +84,14 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
     return [rx, ry];
   }
 
-  // distFromEdge field.  Returns { distFromCenter, distFromEdge }.
-  function voronoiField(uvX: number, uvY: number): { dCenter: number; dEdge: number } {
-    const sX = uvX * cellDensity,
-      sY = uvY * cellDensity;
-    const cellX = Math.floor(sX),
-      cellY = Math.floor(sY);
-    const posX = sX - cellX,
-      posY = sY - cellY;
-
-    // Phase 1: closest cell point
+  // Closest-cell phase: scan the 3x3 neighborhood and return the closest
+  // seed's squared-distance result alongside its (coX, coY) offset.
+  function findClosestSeed(
+    cellX: number,
+    cellY: number,
+    posX: number,
+    posY: number,
+  ): { dCenter: number; coX: number; coY: number } {
     let dCenter = 8;
     let coX = 0,
       coY = 0;
@@ -97,78 +108,76 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
         }
       }
     }
-    dCenter = Math.sqrt(dCenter);
+    return { dCenter: Math.sqrt(dCenter), coX, coY };
+  }
 
-    // Phase 2: distance to nearest cell boundary, using smooth-min instead
-    // of hard min.  With hard min, dEdge is the distance to the closest
-    // straight bisector line — bisector intersections form sharp polygon
-    // vertices where 3+ cells meet.  With smooth-min (log-sum-exp), the
-    // distances to ALL bisectors blend together near vertices, rounding
-    // those sharp polygon corners into smooth curves.  edgeSmooth=0
-    // collapses to the original hard min (fully polygonal); higher values
-    // give increasingly rounded organic cell shapes.
-    let dEdge: number;
-    if (edgeSmooth <= 0) {
-      // Hard min — original Quilez behavior
-      dEdge = 8;
-      for (let yy = -1; yy <= 1; yy++) {
-        for (let xx = -1; xx <= 1; xx++) {
-          const rv = randomVector(cellX + xx, cellY + yy, angleOffset);
-          const cox = xx - posX + rv[0];
-          const coy = yy - posY + rv[1];
-          const dx = cox - coX,
-            dy = coy - coY;
-          const dlen = Math.hypot(dx, dy);
-          if (dlen < 1e-6) continue;
-          const nx = dx / dlen,
-            ny = dy / dlen;
-          const midX = 0.5 * (coX + cox);
-          const midY = 0.5 * (coY + coy);
-          const dToEdge = midX * nx + midY * ny;
-          if (dToEdge < dEdge) dEdge = dToEdge;
-        }
+  // Hard-min dEdge — original Quilez behavior. Bisector intersections form
+  // sharp polygon vertices where 3+ cells meet.
+  function distanceFromEdgeHard(
+    cellX: number,
+    cellY: number,
+    posX: number,
+    posY: number,
+    coX: number,
+    coY: number,
+  ): number {
+    let dEdge = 8;
+    for (let yy = -1; yy <= 1; yy++) {
+      for (let xx = -1; xx <= 1; xx++) {
+        const rv = randomVector(cellX + xx, cellY + yy, angleOffset);
+        const dToEdge = distanceToBisector(xx - posX + rv[0], yy - posY + rv[1], coX, coY);
+        if (dToEdge !== undefined && dToEdge < dEdge) dEdge = dToEdge;
       }
-    } else {
-      // Soft min via log-sum-exp.  d_smooth = -k * log(Σ exp(-d / k))
-      // — small k → close to hard min; bigger k → more rounding.
-      const k = edgeSmooth;
-      let sumExp = 0;
-      for (let yy = -1; yy <= 1; yy++) {
-        for (let xx = -1; xx <= 1; xx++) {
-          const rv = randomVector(cellX + xx, cellY + yy, angleOffset);
-          const cox = xx - posX + rv[0];
-          const coy = yy - posY + rv[1];
-          const dx = cox - coX,
-            dy = coy - coY;
-          const dlen = Math.hypot(dx, dy);
-          if (dlen < 1e-6) continue;
-          const nx = dx / dlen,
-            ny = dy / dlen;
-          const midX = 0.5 * (coX + cox);
-          const midY = 0.5 * (coY + coy);
-          const dToEdge = midX * nx + midY * ny;
-          sumExp += Math.exp(-dToEdge / k);
-        }
-      }
-      // Guard: if no valid neighbors contributed (all were the closest
-      // cell — only happens at degenerate spots), fall back to the
-      // closest-bisector hard-min equivalent.
-      dEdge = sumExp <= 0 ? 8 : -k * Math.log(sumExp);
     }
+    return dEdge;
+  }
+
+  // Soft-min dEdge via log-sum-exp. d_smooth = -k * log(Σ exp(-d / k)) —
+  // small k → close to hard min; bigger k → more rounding of polygon
+  // corners into smooth curves.
+  function distanceFromEdgeSoft(
+    cellX: number,
+    cellY: number,
+    posX: number,
+    posY: number,
+    coX: number,
+    coY: number,
+    k: number,
+  ): number {
+    let sumExp = 0;
+    for (let yy = -1; yy <= 1; yy++) {
+      for (let xx = -1; xx <= 1; xx++) {
+        const rv = randomVector(cellX + xx, cellY + yy, angleOffset);
+        const dToEdge = distanceToBisector(xx - posX + rv[0], yy - posY + rv[1], coX, coY);
+        if (dToEdge !== undefined) sumExp += Math.exp(-dToEdge / k);
+      }
+    }
+    // Guard: if no valid neighbors contributed (all were the closest cell —
+    // only happens at degenerate spots), fall back to the hard-min sentinel.
+    return sumExp <= 0 ? 8 : -k * Math.log(sumExp);
+  }
+
+  // distFromEdge field. Returns { distFromCenter, distFromEdge }.
+  function voronoiField(uvX: number, uvY: number): { dCenter: number; dEdge: number } {
+    const sX = uvX * cellDensity,
+      sY = uvY * cellDensity;
+    const cellX = Math.floor(sX),
+      cellY = Math.floor(sY);
+    const posX = sX - cellX,
+      posY = sY - cellY;
+    const { dCenter, coX, coY } = findClosestSeed(cellX, cellY, posX, posY);
+    const dEdge =
+      edgeSmooth <= 0
+        ? distanceFromEdgeHard(cellX, cellY, posX, posY, coX, coY)
+        : distanceFromEdgeSoft(cellX, cellY, posX, posY, coX, coY, edgeSmooth);
     return { dCenter, dEdge };
   }
 
   // Flow / wiggle.  Higher-frequency UV octaves: lava channels acquire
-  // small wiggles.  Read from G.lavaFlow.
-  const ph1x = rng() * Math.PI * 2;
-  const ph1y = rng() * Math.PI * 2;
-  const ph2x = rng() * Math.PI * 2;
-  const ph2y = rng() * Math.PI * 2;
+  // small wiggles.
+  const flowPhases = freshSineWarpPhases(rng);
   function flowUV(uvX: number, uvY: number): [number, number] {
-    const A1 = flowStrength;
-    const A2 = A1 * 0.33;
-    const wx = Math.sin(uvX * 8 + uvY * 6 + ph1x) * A1 + Math.sin(uvX * 21 - uvY * 11 + ph2x) * A2;
-    const wy = Math.sin(uvY * 8 + uvX * 6 + ph1y) * A1 + Math.sin(uvY * 21 - uvX * 11 + ph2y) * A2;
+    const [wx, wy] = sineWarpOffsets(uvX, uvY, flowStrength, flowPhases);
     return [uvX + wx, uvY + wy];
   }
 
@@ -243,95 +252,81 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
     ly = LY / lLength,
     lz = LZ / lLength;
 
-  // Pre-compute distFromEdge for every pixel.  We need it for normal-map
-  // gradient computation (sample neighbors) and for the lava/rock mask.
-  // The dEdge value is perturbed by craggyNoise(), which makes individual
-  // cell edges ragged rather than smoothly curved — both the silhouette
-  // (where mask transitions) AND the heightmap shading get the raggedness.
-  const aspect = H / W;
-  const fieldArray = new Float32Array(W * H);
-  for (let py = 0; py < H; py++) {
-    for (let px = 0; px < W; px++) {
-      const u0 = (px + 0.5) / W;
-      const v0 = ((py + 0.5) / H) * aspect;
-      const [u, v] = flowUV(u0, v0);
-      const f = voronoiField(u, v);
-      // Perturb dEdge directly with two noises:
-      //   * craggyNoise (high freq) → ragged jagged edge details
-      //   * wobbleNoise (low freq, cellDensity-scale) → smooth wavy lines
-      //     along edges (matches the desert's wobbly look)
-      const perturbation = craggyNoise(u0, v0) * cragginess + wobbleNoise(u0, v0) * wobble;
-      fieldArray[py * W + px] = f.dEdge + perturbation;
-    }
+  // Rock color: two-band low→mid→hi gradient by heightNorm.
+  function rockColor(heightNorm: number): RGB {
+    return heightNorm < 0.5
+      ? lerp3(ROCK_LO, ROCK_MD, heightNorm * 2)
+      : lerp3(ROCK_MD, ROCK_HI, (heightNorm - 0.5) * 2);
   }
 
-  // Render with normal-map shading
+  // Lava color: hot at channel center, cooling toward edges (lavaCool ≈
+  // dEdge / thickness).
+  function lavaColor(lavaCool: number): RGB {
+    return lavaCool < 0.4
+      ? lerp3(LAVA_HOT, LAVA_MID, lavaCool / 0.4)
+      : lerp3(LAVA_MID, LAVA_DEEP, (lavaCool - 0.4) / 0.6);
+  }
+
+  // Pre-compute distFromEdge for every pixel.  We need it for normal-map
+  // gradient computation (sample neighbors) and for the lava/rock mask.
+  // The dEdge value is perturbed by craggyNoise() (high freq, ragged edges)
+  // and wobbleNoise() (low freq, smooth wavy bumps) — both silhouette AND
+  // shading inherit the raggedness.
+  function precomputeFieldArray(): Float32Array {
+    const aspect = H / W;
+    const out = new Float32Array(W * H);
+    for (let py = 0; py < H; py++) {
+      for (let px = 0; px < W; px++) {
+        const u0 = (px + 0.5) / W;
+        const v0 = ((py + 0.5) / H) * aspect;
+        const [u, v] = flowUV(u0, v0);
+        const f = voronoiField(u, v);
+        const perturbation = craggyNoise(u0, v0) * cragginess + wobbleNoise(u0, v0) * wobble;
+        out[py * W + px] = f.dEdge + perturbation;
+      }
+    }
+    return out;
+  }
+  const fieldArray = precomputeFieldArray();
+
+  // Shade one pixel: combine rock-on-lava with normal-mapped shading.
+  function shadePixel(px: number, py: number): [number, number, number] {
+    const dEdge = fieldArray[py * W + px];
+    const mask = smoothstep(thickness, thickness + thicknessFalloff, dEdge);
+    const heightHere = heightFunction(Math.max(0, dEdge - thickness));
+
+    // Normal via finite-difference on the height field (clamp at edges).
+    const xL = Math.max(0, px - 1),
+      xR = Math.min(W - 1, px + 1);
+    const yT = Math.max(0, py - 1),
+      yB = Math.min(H - 1, py + 1);
+    const hL = heightFunction(Math.max(0, fieldArray[py * W + xL] - thickness));
+    const hR = heightFunction(Math.max(0, fieldArray[py * W + xR] - thickness));
+    const hT = heightFunction(Math.max(0, fieldArray[yT * W + px] - thickness));
+    const hB = heightFunction(Math.max(0, fieldArray[yB * W + px] - thickness));
+    const dzdx = (hR - hL) * heightStrength * cellDensity * 0.5;
+    const dzdy = (hB - hT) * heightStrength * cellDensity * 0.5;
+    const nx = -dzdx,
+      ny = -dzdy,
+      nz = 1;
+    const nLength = Math.hypot(nx, ny, nz);
+    const lambert = Math.max(0, (nx * lx + ny * ly + nz * lz) / nLength);
+    const shading = 0.3 + 0.85 * lambert;
+
+    const heightNorm = Math.min(1, heightHere * heightStrength * cellDensity);
+    const rockBase = rockColor(heightNorm);
+    const lavaBase = lavaColor(Math.min(1, dEdge / Math.max(0.001, thickness)));
+
+    return [
+      lavaBase[0] + (rockBase[0] * shading - lavaBase[0]) * mask,
+      lavaBase[1] + (rockBase[1] * shading - lavaBase[1]) * mask,
+      lavaBase[2] + (rockBase[2] * shading - lavaBase[2]) * mask,
+    ];
+  }
+
   for (let py = 0; py < H; py++) {
     for (let px = 0; px < W; px++) {
-      const dEdge = fieldArray[py * W + px];
-
-      // Mask: 0 inside lava (dEdge near 0), 1 inside rock (dEdge > thickness).
-      // Smoothstep over [thickness, thickness + falloff].
-      const mask = smoothstep(thickness, thickness + thicknessFalloff, dEdge);
-
-      // Heightmap: power-compressed (dEdge - thickness).  Rocks rise up,
-      // lava sits flat, but small rocks don't dominate the shading.
-      const heightHere = heightFunction(Math.max(0, dEdge - thickness));
-
-      // Compute normal via finite-difference on the height field.
-      // dh/dx and dh/dy from neighbor heights (clamp at edges).
-      const xL = Math.max(0, px - 1),
-        xR = Math.min(W - 1, px + 1);
-      const yT = Math.max(0, py - 1),
-        yB = Math.min(H - 1, py + 1);
-      const hL = heightFunction(Math.max(0, fieldArray[py * W + xL] - thickness));
-      const hR = heightFunction(Math.max(0, fieldArray[py * W + xR] - thickness));
-      const hT = heightFunction(Math.max(0, fieldArray[yT * W + px] - thickness));
-      const hB = heightFunction(Math.max(0, fieldArray[yB * W + px] - thickness));
-      // dz/dx ≈ (hR - hL) * heightStrength * cellDensity
-      // (cellDensity scales the field gradient back into UV-screen space)
-      const dzdx = (hR - hL) * heightStrength * cellDensity * 0.5;
-      const dzdy = (hB - hT) * heightStrength * cellDensity * 0.5;
-      // Normal = normalize((-dzdx, -dzdy, 1))
-      const nx = -dzdx,
-        ny = -dzdy,
-        nz = 1;
-      const nLength = Math.hypot(nx, ny, nz);
-      const nxN = nx / nLength,
-        nyN = ny / nLength,
-        nzN = nz / nLength;
-      // Lambertian
-      let lambert = nxN * lx + nyN * ly + nzN * lz;
-      if (lambert < 0) lambert = 0;
-      // Ambient + diffuse
-      const shading = 0.3 + 0.85 * lambert;
-
-      // Rock color: dark at edge of cell (mask=0 fringes have shadow), bright
-      // at peak.  Use heightHere normalized as a height factor.
-      const heightNorm = Math.min(1, heightHere * heightStrength * cellDensity);
-      // Two-band gradient: low → mid → hi by heightNorm.
-      const rockBase: RGB =
-        heightNorm < 0.5
-          ? lerp3(ROCK_LO, ROCK_MD, heightNorm * 2)
-          : lerp3(ROCK_MD, ROCK_HI, (heightNorm - 0.5) * 2);
-      // Apply shading
-      const rockR = rockBase[0] * shading;
-      const rockG = rockBase[1] * shading;
-      const rockB = rockBase[2] * shading;
-
-      // Lava color: hot at the center of channels (where dEdge is closest to
-      // 0), cooling toward edges.  Use dEdge / thickness as cooling factor.
-      const lavaCool = Math.min(1, dEdge / Math.max(0.001, thickness));
-      const lavaBase: RGB =
-        lavaCool < 0.4
-          ? lerp3(LAVA_HOT, LAVA_MID, lavaCool / 0.4)
-          : lerp3(LAVA_MID, LAVA_DEEP, (lavaCool - 0.4) / 0.6);
-
-      // Mix rock over lava using mask
-      const r = lavaBase[0] + (rockR - lavaBase[0]) * mask;
-      const g = lavaBase[1] + (rockG - lavaBase[1]) * mask;
-      const b = lavaBase[2] + (rockB - lavaBase[2]) * mask;
-
+      const [r, g, b] = shadePixel(px, py);
       const index = (py * W + px) * 4;
       data[index] = Math.max(0, Math.min(255, Math.trunc(r)));
       data[index + 1] = Math.max(0, Math.min(255, Math.trunc(g)));
