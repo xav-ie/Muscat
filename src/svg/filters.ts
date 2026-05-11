@@ -298,10 +298,17 @@ export function setupLayers(): void {
   parchLayer.append(parchRect);
   board.append(parchLayer);
 
-  // Shapes layer (filtered) — drawn first so it sits behind the text.
+  // Shapes layer (filtered) — drawn first so it sits behind the rasters.
   layers.shapes = document.createElementNS(SVG_NS, "g");
   layers.shapes.setAttribute("filter", "url(#grain)");
   board.append(layers.shapes);
+
+  // Rasters layer (UNFILTERED) — sits between shapes and text.  Hosts the
+  // GPU-rasterized terrain images.  Skipping the grain filter keeps their
+  // pixels sharp; the displacement otherwise smears the rasterized blades
+  // and water caustics into a visible wobble.
+  layers.rasters = document.createElementNS(SVG_NS, "g");
+  board.append(layers.rasters);
 
   // Text layer (unfiltered) — drawn last so numbers sit on top.
   layers.text = document.createElementNS(SVG_NS, "g");

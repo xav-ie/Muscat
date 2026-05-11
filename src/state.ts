@@ -20,18 +20,22 @@ export const G = {
 };
 
 // Targets that render helpers append into — set up by setupLayers() each render.
-//   shapes: gets a turbulence/displacement filter that gives every drawn edge
-//           a subtle hand-drawn texture matching Kranky's letterforms.
-//   text:   plain group, NO filter — Kranky already has its own texture
-//           built into the glyphs and shouldn't be doubly-displaced.
+//   shapes:  gets a turbulence/displacement filter that gives every drawn edge
+//            a subtle hand-drawn texture matching Kranky's letterforms.
+//   rasters: NO filter — sibling layer drawn between shapes and text.  Hosts
+//            GPU-rasterized terrain images (lava/water/grass) so the grain
+//            displacement doesn't smear their pixels into a visible wobble.
+//   text:    plain group, NO filter — Kranky already has its own texture
+//            built into the glyphs and shouldn't be doubly-displaced.
 //
-// quadlet() temporarily reassigns `layers.shapes` to its own group so child
-// helpers append into the quadlet, then restores it via try/finally.
+// quadlet() and terrainBanner() temporarily reassign these so child helpers
+// append into a sub-group, then restore via try/finally.
 //
 // Implemented as accessors backed by private state so reads return non-null
 // `SVGElement` (with a runtime guard against access before setupLayers()),
 // while assignment still works for the swap pattern.
 let _shapes: SVGElement | undefined;
+let _rasters: SVGElement | undefined;
 let _text: SVGElement | undefined;
 
 export const layers = {
@@ -41,6 +45,13 @@ export const layers = {
   },
   set shapes(element: SVGElement) {
     _shapes = element;
+  },
+  get rasters(): SVGElement {
+    if (!_rasters) throw new Error("layers.rasters accessed before setupLayers()");
+    return _rasters;
+  },
+  set rasters(element: SVGElement) {
+    _rasters = element;
   },
   get text(): SVGElement {
     if (!_text) throw new Error("layers.text accessed before setupLayers()");

@@ -294,5 +294,5 @@ export async function waterCaustics(x: number, y: number, w: number, h: number):
     storage: seedBuf.buffer,
   });
 
-  embedCanvasAsImage(layers.shapes, canvas, x, y, w, h);
+  embedCanvasAsImage(layers.rasters, canvas, x, y, w, h);
 }

@@ -47,20 +47,30 @@ export async function terrainBanner(
   cp.append(cpPath);
   getDefs().append(cp);
 
-  // Decorations live inside a clipped group so they can't escape the
-  // banner shape.  Append our clipped group to the current shapesLayer
-  // (which may itself be inside a filter, e.g. for the grain effect) and
-  // SWAP shapesLayer for the duration so decoration primitives append
-  // into the clipped group.
-  const clipped = document.createElementNS(SVG_NS, "g");
-  clipped.setAttribute("clip-path", `url(#${clipId})`);
-  const saved = layers.shapes;
-  saved.append(clipped);
-  layers.shapes = clipped;
+  // Decorations live inside CLIPPED groups so they can't escape the banner
+  // shape.  Path-based decoration (e.g. sand cracks) goes into the shapes
+  // layer's clip (inheriting the grain filter); rasterized decoration
+  // (lava/water/grass <image>) goes into the rasters layer's clip
+  // (UNFILTERED — the grain displacement otherwise smears their pixels into
+  // a visible wobble).  Both swap their respective `layers.*` for the
+  // duration of the decorator call.
+  function clipped(parent: SVGElement): SVGElement {
+    const g = document.createElementNS(SVG_NS, "g");
+    g.setAttribute("clip-path", `url(#${clipId})`);
+    parent.append(g);
+    return g;
+  }
+  const clippedShapes = clipped(layers.shapes);
+  const clippedRasters = clipped(layers.rasters);
+  const savedShapes = layers.shapes;
+  const savedRasters = layers.rasters;
+  layers.shapes = clippedShapes;
+  layers.rasters = clippedRasters;
   try {
     await decorateBanner(s, x, y, w, h);
   } finally {
-    layers.shapes = saved;
+    layers.shapes = savedShapes;
+    layers.rasters = savedRasters;
   }
 
   // Outline on top (outside the clip so the stroke's outer half stays visible)

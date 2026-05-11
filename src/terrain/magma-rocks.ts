@@ -296,7 +296,7 @@ export async function magmaRocks(x: number, y: number, w: number, h: number): Pr
     uniforms,
   });
 
-  embedCanvasAsImage(layers.shapes, canvas, x, y, w, h, {
+  embedCanvasAsImage(layers.rasters, canvas, x, y, w, h, {
     mime: "image/jpeg",
     quality: 0.92,
   });
