@@ -71,7 +71,7 @@ export async function render(): Promise<void> {
   //    mounted sign / pennant.  Centered horizontally; vertically the
   //    banner straddles the castle's crenellation line.
   const titleH = 18; // banner height in mm (overall, not counting tails)
-  const titleW = 130; // banner width — narrower than castle
+  const titleW = 85; // banner width — narrower than castle
   // Vertical position: banner moved UP by one brick height from its
   // previous reference (castle-top + 4mm) so it floats higher relative
   // to the castle wall — more of the banner sits ABOVE the merlon line.
