@@ -1,7 +1,7 @@
 import { SVG_NS, layers } from "../state.js";
 
 export type TextAlign = "start" | "middle" | "end";
-export type TextOutline = { color: string; width: number };
+export interface TextOutline { color: string; width: number }
 
 // Number rendered with the Kranky display font.
 // `align` is one of 'start' | 'middle' | 'end' — picks the SVG text-anchor.

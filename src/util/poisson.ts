@@ -25,9 +25,9 @@ export function poissonDisk(
     const cx = x + rngFn() * w;
     const cy = y + rngFn() * h;
     let ok = true;
-    for (let i = 0; i < placed.length; i++) {
-      const dx = cx - placed[i]![0],
-        dy = cy - placed[i]![1];
+    for (const [px, py] of placed) {
+      const dx = cx - px,
+        dy = cy - py;
       if (dx * dx + dy * dy < minDistSq) {
         ok = false;
         break;

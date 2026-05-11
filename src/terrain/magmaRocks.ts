@@ -25,7 +25,7 @@ export function magmaRocks(x: number, y: number, w: number, h: number): void {
   const heightStrength = 3.3;
   const flowStrength = 0.036;
   const cragginess = 0.06;
-  const edgeSmooth = 0.0;
+  const edgeSmooth = 0.0 as number; // tuning knob — set >0 to enable smooth-min cell edges
   const wobble = 0.06;
 
   // Render resolution — 4 px / mm, same as water

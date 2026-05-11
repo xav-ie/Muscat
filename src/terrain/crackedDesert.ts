@@ -3,22 +3,22 @@ import { random as rng } from "../util/rng.js";
 import { voronoiCellsWithWavyEdges } from "./voronoi.js";
 import type { Point } from "./voronoi.js";
 
-type CrackSeg = { x1: number; y1: number; x2: number; y2: number };
-type Spine = {
+interface CrackSeg { x1: number; y1: number; x2: number; y2: number }
+interface Spine {
   pts: Point[];
   len: number;
   dirX: number;
   dirY: number;
   perpX: number;
   perpY: number;
-};
-type AlongInfo = {
+}
+interface AlongInfo {
   x: number;
   y: number;
   dirX: number;
   dirY: number;
   segIdx: number;
-};
+}
 
 // Cracked desert — Voronoi cells filled with sand color in slightly varied
 // shades, separated by thin dark cracks along the cell boundaries.  Uses
@@ -53,7 +53,7 @@ export function crackedDesert(
     path.setAttribute("d", v.straightClosedPath(expanded));
     path.setAttribute(
       "fill",
-      sandPalette[Math.floor(rng() * sandPalette.length)]!,
+      sandPalette[Math.floor(rng() * sandPalette.length)],
     );
     cellGroup.appendChild(path);
   }
@@ -67,8 +67,8 @@ export function crackedDesert(
   for (const c of v.cells) {
     const poly = c.poly;
     for (let i = 0; i < poly.length; i++) {
-      const a = poly[i]!,
-        b = poly[(i + 1) % poly.length]!;
+      const a = poly[i],
+        b = poly[(i + 1) % poly.length];
       const k = v.edgeKey(a, b);
       if (seenEdges.has(k)) continue;
       seenEdges.add(k);
@@ -138,38 +138,38 @@ export function crackedDesert(
     const cumLen = [0];
     for (let i = 1; i < n; i++) {
       cumLen.push(
-        cumLen[i - 1]! +
-          Math.hypot(pts[i]![0] - pts[i - 1]![0], pts[i]![1] - pts[i - 1]![1]),
+        cumLen[i - 1] +
+          Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]),
       );
     }
-    const total = cumLen[n - 1]!;
+    const total = cumLen[n - 1];
     if (total < 0.1) return "";
     const top: Point[] = [],
       bot: Point[] = [];
     for (let i = 0; i < n; i++) {
-      const t = cumLen[i]! / total;
+      const t = cumLen[i] / total;
       const halfW =
         (widthAtTipEnd + (widthAtBaseEnd - widthAtTipEnd) * t) * 0.5;
       let tx: number, ty: number;
       if (i === 0) {
-        tx = pts[1]![0] - pts[0]![0];
-        ty = pts[1]![1] - pts[0]![1];
+        tx = pts[1][0] - pts[0][0];
+        ty = pts[1][1] - pts[0][1];
       } else if (i === n - 1) {
-        tx = pts[n - 1]![0] - pts[n - 2]![0];
-        ty = pts[n - 1]![1] - pts[n - 2]![1];
+        tx = pts[n - 1][0] - pts[n - 2][0];
+        ty = pts[n - 1][1] - pts[n - 2][1];
       } else {
-        tx = pts[i + 1]![0] - pts[i - 1]![0];
-        ty = pts[i + 1]![1] - pts[i - 1]![1];
+        tx = pts[i + 1][0] - pts[i - 1][0];
+        ty = pts[i + 1][1] - pts[i - 1][1];
       }
       const tl = Math.hypot(tx, ty) || 1;
       const nx = -ty / tl,
         ny = tx / tl;
-      top.push([pts[i]![0] + nx * halfW, pts[i]![1] + ny * halfW]);
-      bot.push([pts[i]![0] - nx * halfW, pts[i]![1] - ny * halfW]);
+      top.push([pts[i][0] + nx * halfW, pts[i][1] + ny * halfW]);
+      bot.push([pts[i][0] - nx * halfW, pts[i][1] - ny * halfW]);
     }
-    let d = `M ${top[0]![0]} ${top[0]![1]} `;
-    for (let i = 1; i < n; i++) d += `L ${top[i]![0]} ${top[i]![1]} `;
-    for (let i = n - 1; i >= 0; i--) d += `L ${bot[i]![0]} ${bot[i]![1]} `;
+    let d = `M ${top[0][0]} ${top[0][1]} `;
+    for (let i = 1; i < n; i++) d += `L ${top[i][0]} ${top[i][1]} `;
+    for (let i = n - 1; i >= 0; i--) d += `L ${bot[i][0]} ${bot[i][1]} `;
     d += "Z";
     return d;
   }
@@ -184,37 +184,37 @@ export function crackedDesert(
     const cumLen = [0];
     for (let i = 1; i < pts.length; i++) {
       cumLen.push(
-        cumLen[i - 1]! +
-          Math.hypot(pts[i]![0] - pts[i - 1]![0], pts[i]![1] - pts[i - 1]![1]),
+        cumLen[i - 1] +
+          Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]),
       );
     }
-    const total = cumLen[pts.length - 1]!;
+    const total = cumLen[pts.length - 1];
     if (total < 1e-6) return null;
     const targetLen = t * total;
     let i = 1;
-    while (i < pts.length && cumLen[i]! < targetLen) i++;
+    while (i < pts.length && cumLen[i] < targetLen) i++;
     if (i >= pts.length) i = pts.length - 1;
-    const segLen = cumLen[i]! - cumLen[i - 1]!;
-    const segT = segLen > 1e-6 ? (targetLen - cumLen[i - 1]!) / segLen : 0;
-    const x = pts[i - 1]![0] + (pts[i]![0] - pts[i - 1]![0]) * segT;
-    const y = pts[i - 1]![1] + (pts[i]![1] - pts[i - 1]![1]) * segT;
+    const segLen = cumLen[i] - cumLen[i - 1];
+    const segT = segLen > 1e-6 ? (targetLen - cumLen[i - 1]) / segLen : 0;
+    const x = pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * segT;
+    const y = pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * segT;
     // Local tangent: prefer this segment's direction; if it's degenerate
     // (zero-length), walk outward to find a non-degenerate neighbour.
-    let dx = pts[i]![0] - pts[i - 1]![0];
-    let dy = pts[i]![1] - pts[i - 1]![1];
+    let dx = pts[i][0] - pts[i - 1][0];
+    let dy = pts[i][1] - pts[i - 1][1];
     let dl = Math.hypot(dx, dy);
     if (dl < 1e-6) {
       // Look forward, then backward
       for (let j = i + 1; j < pts.length; j++) {
-        dx = pts[j]![0] - pts[i - 1]![0];
-        dy = pts[j]![1] - pts[i - 1]![1];
+        dx = pts[j][0] - pts[i - 1][0];
+        dy = pts[j][1] - pts[i - 1][1];
         dl = Math.hypot(dx, dy);
         if (dl > 1e-6) break;
       }
       if (dl < 1e-6) {
         for (let j = i - 2; j >= 0; j--) {
-          dx = pts[i - 1]![0] - pts[j]![0];
-          dy = pts[i - 1]![1] - pts[j]![1];
+          dx = pts[i - 1][0] - pts[j][0];
+          dy = pts[i - 1][1] - pts[j][1];
           dl = Math.hypot(dx, dy);
           if (dl > 1e-6) break;
         }
@@ -268,11 +268,11 @@ export function crackedDesert(
     attachSegIdx?: number,
   ): boolean {
     for (let i = 0; i < polyPts.length - 1; i++) {
-      const a = polyPts[i]!,
-        b = polyPts[i + 1]!;
+      const a = polyPts[i],
+        b = polyPts[i + 1];
       for (let j = 0; j < pool.length; j++) {
         if (j === attachSegIdx) continue;
-        const seg = pool[j]!;
+        const seg = pool[j];
         if (segmentsIntersect(a, b, [seg.x1, seg.y1], [seg.x2, seg.y2]))
           return true;
       }
@@ -285,10 +285,10 @@ export function crackedDesert(
     const startIdx = pool.length;
     for (let i = 0; i < polyPts.length - 1; i++) {
       pool.push({
-        x1: polyPts[i]![0],
-        y1: polyPts[i]![1],
-        x2: polyPts[i + 1]![0],
-        y2: polyPts[i + 1]![1],
+        x1: polyPts[i][0],
+        y1: polyPts[i][1],
+        x2: polyPts[i + 1][0],
+        y2: polyPts[i + 1][1],
       });
     }
     return startIdx;
@@ -448,7 +448,7 @@ export function crackedDesert(
       } while (usedVerts.has(vIdx) && attempts < c.poly.length * 2);
       // If all vertices used (very small polygon), skip extras
       if (usedVerts.has(vIdx)) continue;
-      const target = c.poly[vIdx]!;
+      const target = c.poly[vIdx];
 
       const dxT = target[0] - cx,
         dyT = target[1] - cy;

@@ -4,15 +4,15 @@ import { poissonDisk } from "../util/poisson.js";
 import { embedCanvasAsImage } from "../util/canvasLayer.js";
 
 type RGB = [number, number, number];
-type LayerCfg = {
+interface LayerCfg {
   count: number;
   smoothFrac: number;
   thrLo: number;
   thrHi: number;
   warp: number;
   color: RGB;
-};
-type Field = {
+}
+interface Field {
   seeds: [number, number][];
   grid: [number, number][][];
   gridCols: number;
@@ -23,7 +23,7 @@ type Field = {
   thrHi: number;
   color: RGB;
   warp: number;
-};
+}
 
 // Water caustics — implements the "sharp F1 minus smooth F1" Voronoi trick
 // from the shader-graph technique:
@@ -88,12 +88,14 @@ export function waterCaustics(
     const bucketSize = cellSpacing;
     const gridCols = Math.ceil(W / bucketSize) + 1;
     const gridRows = Math.ceil(H / bucketSize) + 1;
-    const grid: [number, number][][] = new Array(gridCols * gridRows);
-    for (let i = 0; i < grid.length; i++) grid[i] = [];
+    const grid: [number, number][][] = Array.from(
+      { length: gridCols * gridRows },
+      () => [],
+    );
     for (const s of seeds) {
       const gx = Math.min(gridCols - 1, Math.floor(s[0] / bucketSize));
       const gy = Math.min(gridRows - 1, Math.floor(s[1] / bucketSize));
-      grid[gy * gridCols + gx]!.push(s);
+      grid[gy * gridCols + gx].push(s);
     }
     return {
       seeds,
@@ -149,10 +151,8 @@ export function waterCaustics(
       for (let dx = -2; dx <= 2; dx++) {
         const ggx = gx + dx;
         if (ggx < 0 || ggx >= field.gridCols) continue;
-        const bucket = field.grid[ggy * field.gridCols + ggx]!;
-        for (let i = 0; i < bucket.length; i++) {
-          const sx = bucket[i]![0],
-            sy = bucket[i]![1];
+        const bucket = field.grid[ggy * field.gridCols + ggx];
+        for (const [sx, sy] of bucket) {
           const ddx = wux - sx,
             ddy = wuy - sy;
           const d = Math.sqrt(ddx * ddx + ddy * ddy);
@@ -162,9 +162,9 @@ export function waterCaustics(
       }
     }
     if (sumExp <= 0) {
-      for (let i = 0; i < field.seeds.length; i++) {
-        const ddx = wux - field.seeds[i]![0],
-          ddy = wuy - field.seeds[i]![1];
+      for (const [sx, sy] of field.seeds) {
+        const ddx = wux - sx,
+          ddy = wuy - sy;
         const d = Math.sqrt(ddx * ddx + ddy * ddy);
         if (d < d1) d1 = d;
         sumExp += Math.exp(-d / field.smoothness);

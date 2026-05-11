@@ -10,11 +10,11 @@ import {
 } from "../svg/primitives.js";
 import type { ArrowDir } from "../svg/primitives.js";
 
-export type IconTheme = {
+export interface IconTheme {
   squareFill: string;
   iconColor: string;
   outline: string;
-};
+}
 
 // Rough rounded square. If `fill` is set, a crisp SVG rect is laid down first
 // so the rough outline can wobble outside its edges without smearing the color.
@@ -61,7 +61,7 @@ export function resetTintRegistry(): void {
 }
 
 export function getTintFilterId(color: string): string {
-  if (!__tintRegistry) __tintRegistry = new Map();
+  __tintRegistry ??= new Map();
   if (__tintRegistry.has(color)) return __tintRegistry.get(color)!;
   const id = uid(`tint-${color.replace("#", "")}`);
   const filter = document.createElementNS(SVG_NS, "filter");

@@ -16,7 +16,7 @@ export function castle(x: number, y: number, w: number, h: number): void {
   // Local helper — many setAttribute calls in this file pass numbers;
   // wrap them via String() at the call site.
   const set = (el: Element, k: string, v: string | number): void =>
-    el.setAttribute(k, String(v));
+    { el.setAttribute(k, String(v)); };
   // Proportions.  Heights snap to a whole number of brick rows so the bottom
   // row always renders as a full brick (no thin slivers).
   const towerW = w * 0.13;

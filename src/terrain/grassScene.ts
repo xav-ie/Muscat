@@ -4,8 +4,8 @@ import { jitterColor, mixColors } from "../util/color.js";
 import { svgPath, svgRect } from "../svg/primitives.js";
 
 type Point = [number, number];
-type Hill = { pts: Point[]; d: string; color: string };
-type FlowerHue = { petal: string; center: string };
+interface Hill { pts: Point[]; d: string; color: string }
+interface FlowerHue { petal: string; center: string }
 type CrestFn = (px: number) => number;
 
 // One flower: a small dot with a few petals around it.  Rendered as a single
@@ -82,8 +82,8 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
       const py = crestY - amp * noise;
       pts.push([px, py]);
     }
-    let d = `M ${x} ${y + h} L ${pts[0]![0]} ${pts[0]![1]} `;
-    for (let i = 1; i < pts.length; i++) d += `L ${pts[i]![0]} ${pts[i]![1]} `;
+    let d = `M ${x} ${y + h} L ${pts[0][0]} ${pts[0][1]} `;
+    for (let i = 1; i < pts.length; i++) d += `L ${pts[i][0]} ${pts[i][1]} `;
     d += `L ${x + w} ${y + h} Z`;
     return { pts, d, color };
   }
@@ -98,12 +98,12 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
       hi = crest.length - 1;
     while (lo < hi - 1) {
       const mid = (lo + hi) >> 1;
-      if (crest[mid]![0] <= px) lo = mid;
+      if (crest[mid][0] <= px) lo = mid;
       else hi = mid;
     }
-    const span = Math.max(1e-6, crest[hi]![0] - crest[lo]![0]);
-    const t = (px - crest[lo]![0]) / span;
-    return crest[lo]![1] + (crest[hi]![1] - crest[lo]![1]) * t;
+    const span = Math.max(1e-6, crest[hi][0] - crest[lo][0]);
+    const t = (px - crest[lo][0]) / span;
+    return crest[lo][1] + (crest[hi][1] - crest[lo][1]) * t;
   }
 
   // Return a function that takes x and returns y on this crest.
@@ -195,12 +195,12 @@ export function grassScene(x: number, y: number, w: number, h: number): void {
       frontHill.pts.length - 1,
       Math.max(0, Math.floor(t * frontHill.pts.length)),
     );
-    const [gx, gy] = frontHill.pts[sampleIdx]!;
+    const [gx, gy] = frontHill.pts[sampleIdx];
     if (gx < x + margin + 3 || gx > x + w - margin - 3) continue;
     const stemH = 2.5 + rng() * 2.0;
     const headX = gx + (rng() - 0.5) * 0.6;
     const headY = gy - stemH;
-    const hue = flowerHues[Math.floor(rng() * flowerHues.length)]!;
+    const hue = flowerHues[Math.floor(rng() * flowerHues.length)];
     drawFlower(gx, gy, headX, headY, hue);
   }
 

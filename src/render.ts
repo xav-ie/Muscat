@@ -191,7 +191,7 @@ export function render(): void {
     // double as a subtle terrain-color cue).
     const PAPYRUS = "#f5e8c4";
     const rowTheme: IconTheme = {
-      squareFill: bannerColors[s]!.stroke,
+      squareFill: bannerColors[s].stroke,
       iconColor: PAPYRUS,
       outline: PAPYRUS,
     };
@@ -202,18 +202,18 @@ export function render(): void {
       bannerY,
       contentW,
       bannerH,
-      bannerColors[s]!.fill,
-      bannerColors[s]!.stroke,
+      bannerColors[s].fill,
+      bannerColors[s].stroke,
     );
 
     // Edge labels — black for quadlet rows, red for banners.  All same size.
     const quadMidY = sy + quadH / 2;
     const bannerMidY = bannerY + bannerH / 2;
-    edgeNumber(leftNumX, quadMidY, quadletNums[s]!, "#111", numFontSize, "end");
+    edgeNumber(leftNumX, quadMidY, quadletNums[s], "#111", numFontSize, "end");
     edgeNumber(
       rightNumX,
       quadMidY,
-      quadletNums[s]!,
+      quadletNums[s],
       "#111",
       numFontSize,
       "end",
@@ -221,7 +221,7 @@ export function render(): void {
     edgeNumber(
       leftNumX,
       bannerMidY,
-      bannerNums[s]!,
+      bannerNums[s],
       "#E31D1D",
       numFontSize,
       "end",
@@ -229,7 +229,7 @@ export function render(): void {
     edgeNumber(
       rightNumX,
       bannerMidY,
-      bannerNums[s]!,
+      bannerNums[s],
       "#E31D1D",
       numFontSize,
       "end",

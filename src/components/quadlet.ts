@@ -49,9 +49,9 @@ export function quadlet(
           x + c * (sq + gap),
           y + r * (sq + gap),
           sq,
-          iconKeys[r]![c]!,
+          iconKeys[r][c],
           theme,
-          arrowDirs[r]![c]!,
+          arrowDirs[r][c],
         );
       }
     }

@@ -33,9 +33,9 @@ export function wavyGround(
   }
   // Build path: top wavy edge left-to-right, then down to bottom-right
   // corner, across to bottom-left, close.
-  let d = `M ${pts[0]![0]} ${pts[0]![1]} `;
+  let d = `M ${pts[0][0]} ${pts[0][1]} `;
   for (let i = 1; i < pts.length; i++) {
-    d += `L ${pts[i]![0]} ${pts[i]![1]} `;
+    d += `L ${pts[i][0]} ${pts[i][1]} `;
   }
   d += `L ${x + w} ${y + h} L ${x} ${y + h} Z`;
   layers.shapes!.appendChild(svgPath(d, { fill: fillColor }));

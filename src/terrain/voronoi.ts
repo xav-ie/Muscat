@@ -3,9 +3,9 @@ import { poissonDisk } from "../util/poisson.js";
 
 export type Point = [number, number];
 export type Polygon = Point[];
-export type VoronoiCell = { seed: Point; poly: Polygon };
+export interface VoronoiCell { seed: Point; poly: Polygon }
 
-export type VoronoiToolkit = {
+export interface VoronoiToolkit {
   cells: VoronoiCell[];
   cellW: number;
   cellH: number;
@@ -18,7 +18,7 @@ export type VoronoiToolkit = {
   straightOpenPath: (pts: Polygon) => string;
   wavyEdgePoints: (a: Point, b: Point) => Polygon;
   onBorder: (a: Point, b: Point) => boolean;
-};
+}
 
 // ── Voronoi-based magma rocks ──
 // Generate `count` random seed points in a rect, compute their Voronoi
@@ -51,8 +51,8 @@ export function clipPolygonByHalfplane(
   const out: Polygon = [];
   const keep = (s: number) => (seedSide > 0 ? s >= 0 : s <= 0);
   for (let i = 0; i < poly.length; i++) {
-    const cur = poly[i]!;
-    const nxt = poly[(i + 1) % poly.length]!;
+    const cur = poly[i];
+    const nxt = poly[(i + 1) % poly.length];
     const sCur = side(cur[0], cur[1]);
     const sNxt = side(nxt[0], nxt[1]);
     const curIn = keep(sCur);
@@ -103,11 +103,11 @@ export function voronoiCellsWithWavyEdges(
   function buildCells(currentSeeds: Point[]): VoronoiCell[] {
     const out: VoronoiCell[] = [];
     for (let i = 0; i < currentSeeds.length; i++) {
-      const [sx, sy] = currentSeeds[i]!;
+      const [sx, sy] = currentSeeds[i];
       let cell: Polygon = rect.slice();
       for (let j = 0; j < currentSeeds.length; j++) {
         if (i === j) continue;
-        const [tx, ty] = currentSeeds[j]!;
+        const [tx, ty] = currentSeeds[j];
         const mx = (sx + tx) / 2,
           my = (sy + ty) / 2;
         const px = mx - (ty - sy);
@@ -202,12 +202,12 @@ export function voronoiCellsWithWavyEdges(
   function expandedPolygon(poly: Polygon): Polygon {
     const out: Polygon = [];
     for (let i = 0; i < poly.length; i++) {
-      const a = poly[i]!;
-      const b = poly[(i + 1) % poly.length]!;
+      const a = poly[i];
+      const b = poly[(i + 1) % poly.length];
       out.push(a);
       const mids = getEdgeNoise(a, b);
       if (isCanonicalForward(a, b)) for (const p of mids) out.push(p);
-      else for (let j = mids.length - 1; j >= 0; j--) out.push(mids[j]!);
+      else for (let j = mids.length - 1; j >= 0; j--) out.push(mids[j]);
     }
     return out;
   }
@@ -216,13 +216,13 @@ export function voronoiCellsWithWavyEdges(
     const n = pts.length;
     if (n < 3) return "";
     const startMid: Point = [
-      (pts[n - 1]![0] + pts[0]![0]) / 2,
-      (pts[n - 1]![1] + pts[0]![1]) / 2,
+      (pts[n - 1][0] + pts[0][0]) / 2,
+      (pts[n - 1][1] + pts[0][1]) / 2,
     ];
     let d = `M ${startMid[0]} ${startMid[1]} `;
     for (let i = 0; i < n; i++) {
-      const cur = pts[i]!;
-      const next = pts[(i + 1) % n]!;
+      const cur = pts[i];
+      const next = pts[(i + 1) % n];
       const mid: Point = [(cur[0] + next[0]) / 2, (cur[1] + next[1]) / 2];
       d += `Q ${cur[0]} ${cur[1]} ${mid[0]} ${mid[1]} `;
     }
@@ -234,15 +234,15 @@ export function voronoiCellsWithWavyEdges(
     const n = pts.length;
     if (n < 2) return "";
     if (n === 2)
-      return `M ${pts[0]![0]} ${pts[0]![1]} L ${pts[1]![0]} ${pts[1]![1]} `;
-    let d = `M ${pts[0]![0]} ${pts[0]![1]} `;
+      return `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]} `;
+    let d = `M ${pts[0][0]} ${pts[0][1]} `;
     for (let i = 1; i < n - 1; i++) {
-      const cur = pts[i]!;
-      const next = pts[i + 1]!;
+      const cur = pts[i];
+      const next = pts[i + 1];
       const mid: Point = [(cur[0] + next[0]) / 2, (cur[1] + next[1]) / 2];
       d += `Q ${cur[0]} ${cur[1]} ${mid[0]} ${mid[1]} `;
     }
-    d += `L ${pts[n - 1]![0]} ${pts[n - 1]![1]} `;
+    d += `L ${pts[n - 1][0]} ${pts[n - 1][1]} `;
     return d;
   }
 
@@ -252,16 +252,16 @@ export function voronoiCellsWithWavyEdges(
   function straightClosedPath(pts: Polygon): string {
     const n = pts.length;
     if (n < 3) return "";
-    let d = `M ${pts[0]![0]} ${pts[0]![1]} `;
-    for (let i = 1; i < n; i++) d += `L ${pts[i]![0]} ${pts[i]![1]} `;
+    let d = `M ${pts[0][0]} ${pts[0][1]} `;
+    for (let i = 1; i < n; i++) d += `L ${pts[i][0]} ${pts[i][1]} `;
     d += "Z";
     return d;
   }
   function straightOpenPath(pts: Polygon): string {
     const n = pts.length;
     if (n < 2) return "";
-    let d = `M ${pts[0]![0]} ${pts[0]![1]} `;
-    for (let i = 1; i < n; i++) d += `L ${pts[i]![0]} ${pts[i]![1]} `;
+    let d = `M ${pts[0][0]} ${pts[0][1]} `;
+    for (let i = 1; i < n; i++) d += `L ${pts[i][0]} ${pts[i][1]} `;
     return d;
   }
 

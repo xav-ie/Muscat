@@ -40,13 +40,13 @@ export function riverScene(x: number, y: number, w: number, h: number): void {
   for (let i = 0; i <= samples; i++) {
     const px = x + (i / samples) * w;
     topPts.push([px, riverEdgeY(-1, px)]);
-    botPts.push([px, riverEdgeY(+1, px)]);
+    botPts.push([px, riverEdgeY(1, px)]);
   }
 
   // 1. SAND on top — a polygon from banner top to river top edge
   let dSand = `M ${x} ${y} L ${x + w} ${y} `;
   for (let i = topPts.length - 1; i >= 0; i--) {
-    dSand += `L ${topPts[i]![0]} ${topPts[i]![1]} `;
+    dSand += `L ${topPts[i][0]} ${topPts[i][1]} `;
   }
   dSand += "Z";
   layers.shapes!.appendChild(svgPath(dSand, { fill: SAND }));
@@ -54,26 +54,26 @@ export function riverScene(x: number, y: number, w: number, h: number): void {
   // 2. MUD on bottom — banner bottom up to river bottom edge
   let dMud = `M ${x} ${y + h} L ${x + w} ${y + h} `;
   for (let i = botPts.length - 1; i >= 0; i--) {
-    dMud += `L ${botPts[i]![0]} ${botPts[i]![1]} `;
+    dMud += `L ${botPts[i][0]} ${botPts[i][1]} `;
   }
   dMud += "Z";
   layers.shapes!.appendChild(svgPath(dMud, { fill: MUD }));
 
   // 3. RIVER body — between top and bottom edges
-  let dRiver = `M ${topPts[0]![0]} ${topPts[0]![1]} `;
+  let dRiver = `M ${topPts[0][0]} ${topPts[0][1]} `;
   for (let i = 1; i < topPts.length; i++) {
-    dRiver += `L ${topPts[i]![0]} ${topPts[i]![1]} `;
+    dRiver += `L ${topPts[i][0]} ${topPts[i][1]} `;
   }
   for (let i = botPts.length - 1; i >= 0; i--) {
-    dRiver += `L ${botPts[i]![0]} ${botPts[i]![1]} `;
+    dRiver += `L ${botPts[i][0]} ${botPts[i][1]} `;
   }
   dRiver += "Z";
   layers.shapes!.appendChild(svgPath(dRiver, { fill: RIVER_BLUE }));
 
   // 4. River bank outlines (top and bottom edges of the river)
   function buildEdgePath(pts: [number, number][]): string {
-    let d = `M ${pts[0]![0]} ${pts[0]![1]} `;
-    for (let i = 1; i < pts.length; i++) d += `L ${pts[i]![0]} ${pts[i]![1]} `;
+    let d = `M ${pts[0][0]} ${pts[0][1]} `;
+    for (let i = 1; i < pts.length; i++) d += `L ${pts[i][0]} ${pts[i][1]} `;
     return d;
   }
   layers.shapes!.appendChild(

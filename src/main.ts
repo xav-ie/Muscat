@@ -9,8 +9,8 @@ const seedBtn = document.getElementById("reseed") as HTMLButtonElement;
 const exportBtn = document.getElementById("export-png") as HTMLButtonElement;
 const gFreqEl = document.getElementById("grain-freq") as HTMLInputElement;
 const gScaleEl = document.getElementById("grain-scale") as HTMLInputElement;
-const gFreqVal = document.getElementById("grain-freq-val") as HTMLElement;
-const gScaleVal = document.getElementById("grain-scale-val") as HTMLElement;
+const gFreqVal = document.getElementById("grain-freq-val")!;
+const gScaleVal = document.getElementById("grain-scale-val")!;
 
 seedBtn.addEventListener("click", () => {
   G.seed = freshSeed();
@@ -52,8 +52,8 @@ async function exportPng(dpi = 300): Promise<void> {
   // Clone the SVG so we can stamp explicit width/height without disturbing the
   // live one; the inline style + base64 font ride along automatically.
   const clone = board.cloneNode(true) as SVGSVGElement;
-  clone.setAttribute("width", widthIn + "in");
-  clone.setAttribute("height", heightIn + "in");
+  clone.setAttribute("width", `${widthIn}in`);
+  clone.setAttribute("height", `${heightIn}in`);
   clone.setAttribute("xmlns", SVG_NS);
 
   const xml = new XMLSerializer().serializeToString(clone);
@@ -65,8 +65,12 @@ async function exportPng(dpi = 300): Promise<void> {
   try {
     const img = new Image();
     await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error("SVG → image load failed"));
+      img.onload = () => {
+        resolve();
+      };
+      img.onerror = () => {
+        reject(new Error("SVG → image load failed"));
+      };
       img.src = url;
     });
 
@@ -78,9 +82,9 @@ async function exportPng(dpi = 300): Promise<void> {
     ctx.fillRect(0, 0, W, H);
     ctx.drawImage(img, 0, 0, W, H);
 
-    const pngBlob = await new Promise<Blob | null>((res) =>
-      canvas.toBlob(res, "image/png"),
-    );
+    const pngBlob = await new Promise<Blob | null>((res) => {
+      canvas.toBlob(res, "image/png");
+    });
     const a = document.createElement("a");
     a.download = `board-12x18-${dpi}dpi.png`;
     a.href = URL.createObjectURL(pngBlob!);
@@ -92,6 +96,8 @@ async function exportPng(dpi = 300): Promise<void> {
     exportBtn.textContent = "export 12×18 png · 300dpi";
   }
 }
-exportBtn.addEventListener("click", () => exportPng(300));
+exportBtn.addEventListener("click", () => {
+  void exportPng(300);
+});
 
 render();
