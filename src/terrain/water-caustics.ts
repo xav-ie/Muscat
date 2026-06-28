@@ -1,4 +1,5 @@
-import { layers } from "../state.js";
+import { layers, SVG_NS, getDefs } from "../state.js";
+import { uid } from "../util/uid.js";
 import { random as rng } from "../util/rng.js";
 import { poissonDisk } from "../util/poisson.js";
 import { embedCanvasAsImage } from "../util/canvas-layer.js";
@@ -16,6 +17,53 @@ interface LayerCfg {
 }
 
 const PX_PER_MM = 8;
+
+// Shark silhouette — single path in an
+// 833×362 viewBox.  Rendered as a dark-blue silhouette lurking near the
+// bottom-left of the water tile.
+const SHARK_VIEW_W = 833;
+const SHARK_VIEW_H = 362;
+const SHARK_PATH =
+  "M830.386 266.561C815.886 290.561 729.886 292.561 673.886 260.061C659.593 251.765 633.735 242.753 601.793 234.23C592.819 303.681 530.804 367.544 498.386 361.061C465.754 354.534 539.175 292.808 532.642 218.432C472.038 206.554 404.95 198.005 354.383 197.849C340.548 207.652 325.847 215.518 317.068 199.707C311.947 200.326 307.203 201.107 302.886 202.061C221.386 220.061 43.018 148.316 8.3863 52.0607C-25.6138 -42.4393 41.8863 168.561 245.386 150.561C362.503 140.202 403.106 124.046 447.165 112.197C437.526 91.2791 395.314 83.9577 416.886 81.5607C438.797 79.1262 464.337 77.6593 497.207 101.896C516.621 99.2302 539.769 97.502 569.997 97.1343C610.838 22.0056 583.421 -1.36353 602.886 0.0607392C621.755 1.44136 654.601 50.6866 642.556 106.08C767.761 137.92 845.554 241.456 830.386 266.561Z";
+
+// Place the shark silhouette near the bottom-left of the water tile.  Drawn
+// on top of the caustics image with multiply blend at 50% opacity so it
+// darkens the water beneath it as a soft silhouette.
+function emitShark(x: number, y: number, w: number, h: number): void {
+  const sharkW = w * 0.28; // tile-relative width
+  const scale = sharkW / SHARK_VIEW_W;
+  const sharkH = SHARK_VIEW_H * scale;
+  const tx = x + w * 0.05; // left padding
+  const ty = y + h - sharkH - h * 0.1; // bottom padding
+
+  // Soft-edge blur filter.  stdDeviation is in the shark's local viewBox
+  // units, so it scales down with the shark and stays a consistent ~edge
+  // softness regardless of tile size.  Region is buffered so the blur isn't
+  // clipped at the filter bounds.
+  const filterId = uid("shark-blur");
+  const filter = document.createElementNS(SVG_NS, "filter");
+  filter.setAttribute("id", filterId);
+  filter.setAttribute("x", "-20%");
+  filter.setAttribute("y", "-20%");
+  filter.setAttribute("width", "140%");
+  filter.setAttribute("height", "140%");
+  const blur = document.createElementNS(SVG_NS, "feGaussianBlur");
+  blur.setAttribute("in", "SourceGraphic");
+  blur.setAttribute("stdDeviation", "8");
+  filter.append(blur);
+  getDefs().append(filter);
+
+  const g = document.createElementNS(SVG_NS, "g");
+  g.setAttribute("transform", `translate(${String(tx)} ${String(ty)}) scale(${String(scale)})`);
+  g.setAttribute("style", "mix-blend-mode: multiply");
+  g.setAttribute("opacity", "0.5");
+  const p = document.createElementNS(SVG_NS, "path");
+  p.setAttribute("d", SHARK_PATH);
+  p.setAttribute("fill", "#23406b");
+  p.setAttribute("filter", `url(#${filterId})`);
+  g.append(p);
+  layers.rasters.append(g);
+}
 
 // WGSL port of the two-layer Voronoi-edge caustic.  JS pre-computes seed
 // points (Poisson-disk sampled with the seeded RNG so the layout stays
@@ -295,4 +343,7 @@ export async function waterCaustics(x: number, y: number, w: number, h: number):
   });
 
   embedCanvasAsImage(layers.rasters, canvas, x, y, w, h);
+
+  // Shark silhouette on top of the caustics (multiply blend, 50% opacity).
+  emitShark(x, y, w, h);
 }
