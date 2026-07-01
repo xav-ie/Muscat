@@ -10,5 +10,5 @@
     "noEmit": true,
     "types": ["node", "@webgpu/types"]
   },
-  "include": ["build.ts", "src/**/*.ts"]
+  "include": ["build.ts", "generate-preview.ts", "src/**/*.ts"]
 }

@@ -23,7 +23,7 @@ export default defineConfig(
     },
   },
   {
-    files: ["build.ts"],
+    files: ["build.ts", "generate-preview.ts"],
     languageOptions: { globals: globals.node },
   },
   {

@@ -16,12 +16,20 @@ const ICON_FILES: Record<string, string> = {
   crystal: "crystalball.svg",
 };
 
-const b64 = (path: string) => readFileSync(path).toString("base64");
+// The Kranky display font comes from @fontsource/kranky rather than a
+// checked-in binary — reproducible via package-lock, baked in below at build.
+// Resolve through the package (respects `exports`/hoisting) instead of a
+// hardcoded node_modules path.
+const KRANKY_WOFF2 = fileURLToPath(
+  import.meta.resolve("@fontsource/kranky/files/kranky-latin-400-normal.woff2"),
+);
+
+const b64 = (file: string) => readFileSync(file).toString("base64");
 
 const icons = Object.fromEntries(
   Object.entries(ICON_FILES).map(([name, file]) => [name, b64(path.resolve(ASSETS, file))]),
 );
-const krankyB64 = b64(path.resolve(ASSETS, "kranky-latin-400-normal.woff2"));
+const krankyB64 = b64(KRANKY_WOFF2);
 
 const result = await build({
   entryPoints: [ENTRY],

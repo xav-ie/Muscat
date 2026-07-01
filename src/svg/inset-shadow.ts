@@ -15,11 +15,7 @@ import { uid } from "../util/uid.js";
 // Build a single filter that gives shapes a soft inner shadow.  Returns
 // just the filter ID — caller applies via `filter="url(#id)"`.  Unique
 // per call so multiple shapes can have differently-tuned shadows.
-export function makeInsetShadowFilter(
-  defsParent: SVGElement,
-  idPrefix: string,
-  blur: number,
-): string {
+function makeInsetShadowFilter(defsParent: SVGElement, idPrefix: string, blur: number): string {
   const f = document.createElementNS(SVG_NS, "filter");
   const id = uid(idPrefix);
   f.setAttribute("id", id);

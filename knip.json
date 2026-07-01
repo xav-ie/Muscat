@@ -1,5 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["src/main.ts"],
-  "project": ["src/**/*.ts"]
+  "entry": ["src/main.ts", "generate-preview.ts"],
+  "project": ["src/**/*.ts", "generate-preview.ts"],
+  "ignoreDependencies": ["@fontsource/kranky"]
 }

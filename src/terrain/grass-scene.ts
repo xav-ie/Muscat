@@ -959,7 +959,10 @@ export async function grassScene(x: number, y: number, w: number, h: number): Pr
     // recolored across the SVG's blue tones.  The pool refills only if it ever
     // runs dry (more butterflies than palette entries).
     if (availableWingColors.length === 0) availableWingColors.push(...butterflyColors);
-    const wingHex = availableWingColors.splice(Math.floor(rng() * availableWingColors.length), 1)[0];
+    const wingHex = availableWingColors.splice(
+      Math.floor(rng() * availableWingColors.length),
+      1,
+    )[0];
     const base = hexToRgb01(jitterColor(wingHex, 0.4));
     // A second palette hue (distinct from the wing's) drives the Voronoi cells.
     const spotChoices = butterflyColors.filter((c) => c !== wingHex);
