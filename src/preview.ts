@@ -37,6 +37,8 @@ interface PreviewRecolor {
   stopClass?: Record<string, string>;
   /** `fill="#hex"` inside the `#wood` door pattern → add this class. */
   woodFill?: Record<string, string>;
+  /** `data-part="name"` → add this class, drop the fill (wins over fillClass). */
+  partClass?: Record<string, string>;
 }
 
 export interface PreviewOptions {
@@ -125,7 +127,13 @@ export async function generatePreview(options: PreviewOptions = {}): Promise<Pre
   const strokeClass = r.strokeClass ?? {};
   const strokeHex = r.strokeHex ?? {};
   const stopClass = r.stopClass ?? {};
+  const partClass = r.partClass ?? {};
   for (const element of shapes.querySelectorAll<SVGElement>("*")) {
+    const part = element.dataset.part;
+    if (part && partClass[part]) {
+      element.removeAttribute("fill");
+      element.classList.add(partClass[part]);
+    }
     const fill = element.getAttribute("fill");
     if (fill && fillClass[fill]) {
       element.removeAttribute("fill");

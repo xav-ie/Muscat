@@ -455,6 +455,8 @@ export function castle(
   const frameFill = document.createElementNS(SVG_NS, "path");
   frameFill.setAttribute("d", frameD);
   frameFill.setAttribute("fill", BRICK_FILL);
+  // Role tag so the preview can recolour the frame apart from the same-hex walls.
+  frameFill.dataset.part = "arch-frame";
   layers.shapes.append(frameFill);
 
   // Frame gets a soft inset shadow — light center (the stone color shows
