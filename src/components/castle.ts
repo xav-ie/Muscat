@@ -134,75 +134,14 @@ export function castle(
   const BRICK_GROUT = "#7a7a7a"; // light gray mortar (matches other lines in tone)
 
   // ── Brick fill of the castle silhouette ──
-  // The silhouette path `d` has the crenellations cut out, so we just need
-  // to fill it with bricks.  To make sure the merlon row IS the top row of
-  // bricks (and bricks stagger down from there), we build a per-castle
-  // <pattern> whose origin is anchored to the merlon row of each tower.
-  //
-  // Towers and body have slightly different brick widths, but we can use
-  // ONE pattern aligned to the LEFT TOWER and rely on the fact that the body
-  // bricks happen to align well enough — OR we can use two clipped fills.
-  // Simpler/cleaner: two fills, one for each unique brick width, each clipped
-  // to its own region.
-  function makeBrickPattern(
-    id: string,
-    brickW: number,
-    originX: number,
-    originY: number,
-  ): SVGPatternElement {
-    // Pattern tile = brickW wide × (2*brickH) tall.  Two rows: top row has a
-    // joint at x=0, bottom row at x=brickW/2 (running bond).
-    const pat = document.createElementNS(SVG_NS, "pattern");
-    pat.setAttribute("id", id);
-    pat.setAttribute("patternUnits", "userSpaceOnUse");
-    set(pat, "width", brickW);
-    set(pat, "height", brickH * 2);
-    // patternTransform shifts the pattern's origin in viewBox space — anchor
-    // the (0,0) of the tile to (originX, originY) so the first row of bricks
-    // begins exactly at the merlon row.
-    pat.setAttribute("patternTransform", svg`translate(${originX} ${originY})`);
+  // Each section (left tower, body, right tower) is painted by paintBricks()
+  // below, clipped to its own column, so the merlon row is the top row of
+  // bricks and each section keeps its own brick width.
 
-    // Brick body fill
-    const bg = document.createElementNS(SVG_NS, "rect");
-    set(bg, "width", brickW);
-    set(bg, "height", brickH * 2);
-    bg.setAttribute("fill", BRICK_FILL);
-    pat.append(bg);
-
-    // Mortar drawn as a SINGLE continuous path with multiple subpaths.
-    // Horizontal lines at y=0 and y=brickH within the tile.  When the
-    // pattern tiles vertically, tile N's y=0 line is the SAME absolute
-    // y as tile N-1's y=2*brickH boundary — but tile N-1 doesn't draw
-    // anything at y=2*brickH (that's its bottom edge, exclusive), so no
-    // doubling.  Verticals: x=0 in row 1 (top half), x=brickW/2 in row 2
-    // (staggered for running bond).
-    const mortarD =
-      svg`M 0 0 L ${brickW} 0 ` + // top of row 1
-      svg`M 0 ${brickH} L ${brickW} ${brickH} ` + // between rows
-      svg`M 0 0 L 0 ${brickH} ` + // vertical row 1
-      svg`M ${brickW / 2} ${brickH} L ${brickW / 2} ${brickH * 2}`; // vertical row 2
-    const mortar = document.createElementNS(SVG_NS, "path");
-    mortar.setAttribute("d", mortarD);
-    mortar.setAttribute("stroke", BRICK_GROUT);
-    set(mortar, "stroke-width", LINE_W);
-    mortar.setAttribute("fill", "none");
-    pat.append(mortar);
-    return pat;
-  }
-
-  // Build a <defs> just for this castle.  Living inside the SVG (not at the
-  // top-level defs) keeps the brick coordinates self-contained — change the
-  // castle position and bricks follow.
+  // Build a <defs> just for this castle (the section clip paths).  Living
+  // inside the SVG, not the top-level defs, keeps the coordinates
+  // self-contained: change the castle position and the clips follow.
   const localDefs = document.createElementNS(SVG_NS, "defs");
-
-  const ltPatId = uid("bricks-tower-l");
-  const rtPatId = uid("bricks-tower-r");
-  const bodyPatId = uid("bricks-body");
-  // Each tower's bricks anchor at its OWN top-left so the merlons line up
-  // with full bricks underneath, not half-bricks.
-  localDefs.append(makeBrickPattern(ltPatId, towerBrickW, x, towerTop));
-  localDefs.append(makeBrickPattern(rtPatId, towerBrickW, x + towerW + bodyW, towerTop));
-  localDefs.append(makeBrickPattern(bodyPatId, bodyBrickW, x + towerW, bodyTop));
 
   // Clip paths so each fill region stays within its column.  Easier than the
   // full silhouette: clip to a simple rectangle per section (left tower,
