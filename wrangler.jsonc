@@ -1,0 +1,8 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "muscat",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "./result" },
+  "workers_dev": false,
+  "routes": [{ "pattern": "muscat.lalala.casa", "custom_domain": true }]
+}
